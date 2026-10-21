@@ -7,579 +7,935 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0b0b0f;
-      --card: #17171f;
-      --gold: #f5c451;
-      --text: #f4f4f5;
-      --muted: #a1a1aa;
-      --border: #33333d;
-      --red: #ff6464;
-      --green: #64df9b;
+      --bg: #0b1020;
+      --panel: #151d31;
+      --gold: #f4c96b;
+      --text: #f4f6ff;
+      --muted: #a9b4ca;
+      --border: #303b54;
+      --green: #3bd69a;
+      --red: #ff737d;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 20px;
       background: var(--bg);
       color: var(--text);
-      font: 16px/1.5 Arial, sans-serif;
-    }
-
-    header, main, footer {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto 20px;
+      font: 16px system-ui, Arial, sans-serif;
     }
 
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 15px;
-      flex-wrap: wrap;
-      padding: 18px 0;
+      padding: 22px 16px;
+      background: #11192a;
       border-bottom: 1px solid var(--border);
     }
 
-    h1, h2, h3 { margin-top: 0; }
-
-    h1 {
-      color: var(--gold);
-      margin-bottom: 0;
-      font-size: 27px;
+    .wrap {
+      width: min(1000px, 94%);
+      margin: auto;
     }
 
+    h1 { margin: 0; color: var(--gold); }
     h2 { font-size: 21px; }
+    .muted { color: var(--muted); font-size: 14px; }
 
-    .muted { color: var(--muted); }
+    main { padding: 20px 0 50px; }
 
-    .card {
-      padding: 20px;
-      margin-bottom: 18px;
+    .panel {
+      background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--card);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
     }
 
-    .hidden { display: none !important; }
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
     input, button {
-      width: 100%;
-      min-height: 44px;
-      border-radius: 8px;
       font: inherit;
+      border-radius: 9px;
+      padding: 11px 12px;
     }
 
     input {
-      padding: 10px 12px;
-      margin: 6px 0 14px;
-      border: 1px solid var(--border);
-      background: #0e0e13;
+      background: #0d1425;
       color: var(--text);
+      border: 1px solid var(--border);
+      max-width: 100%;
     }
 
     button {
-      cursor: pointer;
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      background: #272731;
-      color: var(--text);
-      font-weight: bold;
-    }
-
-    button.primary {
+      border: 0;
       background: var(--gold);
-      border-color: var(--gold);
-      color: #17120a;
+      color: #17130a;
+      font-weight: 700;
+      cursor: pointer;
     }
 
-    button:disabled {
-      cursor: wait;
-      opacity: .6;
+    button.secondary {
+      background: #26334d;
+      color: var(--text);
+    }
+
+    button.danger {
+      background: #8f303d;
+      color: white;
+    }
+
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .hidden { display: none !important; }
+
+    .balance {
+      font-size: 26px;
+      color: var(--gold);
+      font-weight: 800;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
       gap: 14px;
     }
 
-    .balance {
-      color: var(--gold);
-      font-size: 30px;
-      font-weight: bold;
-      overflow-wrap: anywhere;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .actions button { flex: 1 1 150px; }
-
-    .message {
-      min-height: 24px;
-      overflow-wrap: anywhere;
-    }
-
-    .error { color: var(--red); }
-    .success { color: var(--green); }
-
     .game {
-      padding: 16px;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      background: #11192a;
+      border-radius: 14px;
+      padding: 16px;
+      min-width: 0;
     }
 
-    .history-item {
+    .game h3 { margin-top: 0; }
+    .game input { width: 100%; margin-bottom: 10px; }
+    .game > button { min-height: 42px; }
+    .result { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .good { color: var(--green); }
+    .bad { color: var(--red); }
+    .cards { font-size: 23px; overflow-wrap: anywhere; }
+
+    .apple-row {
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      padding: 12px 0;
+      margin: 14px 0;
+    }
+
+    .apple-row button { font-size: 23px; min-width: 52px; }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 9px;
       border-bottom: 1px solid var(--border);
+      overflow-wrap: anywhere;
     }
 
-    .label {
-      display: block;
-      font-weight: bold;
-    }
+    .table-wrap { overflow-x: auto; }
 
-    footer {
-      padding: 15px 0;
-      color: var(--muted);
-      font-size: 13px;
+    @media (max-width: 480px) {
+      .panel { padding: 13px; }
+      input { width: 100%; }
     }
   </style>
 </head>
+
 <body>
-  <header>
+<header>
+  <div class="wrap">
     <h1>DEPOSIT 2.0</h1>
-    <div id="headerStatus" class="muted">Демо-платформа</div>
-  </header>
+    <div class="muted">Игровая платформа · демо-режим</div>
+  </div>
+</header>
 
-  <main>
-    <section id="authSection" class="card">
-      <h2>Вход в аккаунт</h2>
-      <p class="muted">Войди или создай новый аккаунт.</p>
+<main class="wrap">
 
-      <label class="label" for="username">Логин</label>
-      <input id="username" autocomplete="username" maxlength="32"
-             placeholder="Твой логин">
+  <!-- Вход и регистрация -->
+  <section id="auth" class="panel">
+    <h2 id="authTitle">Вход</h2>
+    <form id="authForm" class="row">
+      <input id="username" placeholder="Логин"
+             minlength="3" maxlength="24" required>
+      <input id="password" type="password"
+             placeholder="Пароль (от 8 символов)"
+             minlength="8" required>
+      <button id="authSubmit">Войти</button>
+    </form>
+    <p>
+      <button class="secondary" id="toggleAuth" type="button">
+        Создать аккаунт
+      </button>
+    </p>
+    <div id="authMessage" class="result"></div>
+  </section>
 
-      <label class="label" for="password">Пароль</label>
-      <input id="password" type="password" autocomplete="current-password"
-             placeholder="Твой пароль">
+  <!-- Основное приложение -->
+  <section id="app" class="hidden">
 
-      <div class="actions">
-        <button id="loginButton" class="primary">Войти</button>
-        <button id="registerButton">Регистрация</button>
-      </div>
-
-      <p id="authMessage" class="message" role="status" aria-live="polite"></p>
-    </section>
-
-    <section id="accountSection" class="hidden">
-      <div class="card">
-        <p class="muted">Твой аккаунт</p>
-        <h2 id="welcome">Привет!</h2>
-        <p class="muted">Виртуальный демо-баланс</p>
-        <div id="balance" class="balance">0</div>
-
-        <div class="actions">
-          <button id="refreshButton">Обновить баланс</button>
-          <button id="logoutButton">Выйти</button>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="muted">Ваш игровой ID</div>
+          <strong id="gamerId">—</strong>
+          <div id="playerName" class="muted"></div>
         </div>
 
-        <p id="accountMessage" class="message" role="status" aria-live="polite"></p>
-      </div>
+        <div>
+          <div class="muted">Виртуальный баланс</div>
+          <div class="balance">
+            <span id="balance">0</span> UZS
+          </div>
+        </div>
 
-      <div class="card">
-        <h2>Демо-игры</h2>
+        <button id="logout" class="secondary">Выйти</button>
+      </div>
+      <p class="muted">
+        Игры используют виртуальный баланс. Пополнения — тестовые заявки.
+      </p>
+    </div>
+
+    <!-- Тестовое пополнение -->
+    <div class="panel">
+      <h2>Тестовое пополнение</h2>
+      <form id="topupForm" class="row">
+        <input id="topupAmount" type="number"
+               min="1000" max="10000000" step="1000"
+               value="50000" required>
+        <button>Создать заявку</button>
+      </form>
+      <div id="topupMessage" class="result"></div>
+      <h3>Мои заявки</h3>
+      <div id="myRequests" class="muted">Загрузка…</div>
+    </div>
+
+    <h2>Игры</h2>
+
+    <div class="grid">
+
+      <!-- Luck -->
+      <article class="game">
+        <h3>🍀 Luck</h3>
+        <p class="muted">Шанс выигрыша — 45%, выплата — 2×.</p>
+        <input id="bet-luck" type="number"
+               min="100" max="1000000" step="100" value="100">
+        <button data-simple="luck">Играть</button>
+        <div id="result-luck" class="result"></div>
+      </article>
+
+      <!-- Coin -->
+      <article class="game">
+        <h3>🪙 Coin</h3>
+        <p class="muted">Подбрасывание монеты. Выплата — 2×.</p>
+        <input id="bet-coin" type="number"
+               min="100" max="1000000" step="100" value="100">
+        <button data-simple="coin">Подбросить</button>
+        <div id="result-coin" class="result"></div>
+      </article>
+
+      <!-- Challenge -->
+      <article class="game">
+        <h3>🎯 Challenge</h3>
+        <p class="muted">Испытание с выплатой 3× при победе.</p>
+        <input id="bet-challenge" type="number"
+               min="100" max="1000000" step="100" value="100">
+        <button data-simple="challenge">Испытать удачу</button>
+        <div id="result-challenge" class="result"></div>
+      </article>
+
+      <!-- Apple of Fortune -->
+      <article class="game">
+        <h3>🍎 Apple of Fortune</h3>
         <p class="muted">
-          Игры используют только виртуальные кредиты, не имеющие денежной стоимости.
+          Выбирай яблоки, избегай ловушек и увеличивай множитель.
+          Можно забрать выплату после успешного шага.
         </p>
 
-        <div class="grid">
-          <div class="game">
-            <h3>🎲 Удача</h3>
-            <p class="muted">Поставь 100 демо-кредитов. Результат случайный.</p>
-            <button class="primary" data-game="luck">Играть · 100</button>
+        <input id="bet-apple" type="number"
+               min="100" max="1000000" step="100" value="100">
+
+        <button id="appleStart">Начать игру</button>
+
+        <div id="appleArea" class="hidden">
+          <p>
+            Шаг: <strong id="appleStep">0</strong><br>
+            Множитель: <strong id="appleMultiplier">1×</strong>
+          </p>
+
+          <div class="apple-row">
+            <button type="button" data-apple="0">🍎</button>
+            <button type="button" data-apple="1">🍎</button>
+            <button type="button" data-apple="2">🍎</button>
           </div>
 
-          <div class="game">
-            <h3>🪙 Монетка</h3>
-            <p class="muted">Попробуй получить виртуальный выигрыш.</p>
-            <button class="primary" data-game="coin">Играть · 100</button>
-          </div>
-
-          <div class="game">
-            <h3>🎯 Испытание</h3>
-            <p class="muted">Проверь свою удачу на демо-балансе.</p>
-            <button class="primary" data-game="challenge">Играть · 100</button>
-          </div>
+          <button id="appleCashout" class="secondary">
+            Забрать выигрыш
+          </button>
         </div>
 
-        <p id="gameMessage" class="message" role="status" aria-live="polite"></p>
-      </div>
+        <div id="result-apple" class="result"></div>
+      </article>
 
-      <div class="card">
-        <h2>История операций</h2>
-        <button id="historyButton">Загрузить историю</button>
-        <div id="historyList"></div>
-      </div>
-
-      <section id="adminPanel" class="card hidden">
-        <h2>👑 Админ-панель</h2>
+      <!-- Aviator -->
+      <article class="game">
+        <h3>✈️ Aviator</h3>
         <p class="muted">
-          Управление аккаунтами и виртуальными демо-кредитами.
+          Множитель растёт со временем. Забери виртуальный выигрыш
+          до падения самолёта.
         </p>
 
-        <button id="adminRefresh" class="primary">Обновить список пользователей</button>
-        <p id="adminMessage" class="message" role="status" aria-live="polite"></p>
-        <div id="adminUsers"></div>
+        <input id="bet-aviator" type="number"
+               min="100" max="1000000" step="100" value="100">
 
-        <div id="adminAdjustBox" class="hidden">
-          <hr style="border-color: var(--border); margin: 22px 0">
-          <h3>Изменить демо-баланс</h3>
+        <button id="aviatorStart">Начать полёт</button>
 
-          <label class="label" for="adminUserId">ID пользователя</label>
-          <input id="adminUserId" type="number" min="1" step="1" readonly>
+        <div id="aviatorArea" class="hidden">
+          <p>
+            Множитель:
+            <strong id="aviatorMultiplier">1.00×</strong>
+          </p>
+          <button id="aviatorCashout">Забрать выигрыш</button>
+        </div>
 
-          <label class="label" for="adminAmount">Изменение баланса</label>
-          <input id="adminAmount" type="number" min="-1000000"
-                 max="1000000" step="1" placeholder="Например, 500">
+        <div id="result-aviator" class="result"></div>
+      </article>
 
-          <div class="actions">
-            <button id="adminAdjust" class="primary">Сохранить</button>
-            <button id="adminCancel">Отмена</button>
+      <!-- Blackjack -->
+      <article class="game">
+        <h3>🃏 21 очко — Blackjack</h3>
+        <p class="muted">
+          Набери 21 очко или приблизься к нему, не перебрав.
+        </p>
+
+        <input id="bet-blackjack" type="number"
+               min="100" max="1000000" step="100" value="100">
+
+        <button id="blackjackStart">Начать раунд</button>
+
+        <div id="blackjackArea" class="hidden">
+          <p>Ваши карты: <span id="bjPlayer" class="cards"></span></p>
+          <p>Ваши очки: <strong id="bjPlayerValue">0</strong></p>
+          <p>Карты дилера: <span id="bjDealer" class="cards"></span></p>
+          <p id="bjDealerValue"></p>
+
+          <div class="row">
+            <button id="bjHit">Ещё карту</button>
+            <button id="bjStand" class="secondary">Хватит</button>
           </div>
         </div>
-      </section>
+
+        <div id="result-blackjack" class="result"></div>
+      </article>
+
+    </div>
+
+    <!-- История -->
+    <div class="panel" style="margin-top:16px">
+      <h2>История операций</h2>
+      <button id="refreshHistory" class="secondary">Обновить</button>
+      <div id="history" class="table-wrap"></div>
+    </div>
+
+    <!-- Админ-панель -->
+    <section id="adminPanel" class="panel hidden">
+      <h2>Админ-панель</h2>
+      <button id="refreshAdmin">Обновить заявки</button>
+      <div id="adminRequests" class="table-wrap"></div>
+      <h3>Пользователи</h3>
+      <div id="adminUsers" class="table-wrap"></div>
+      <div id="adminMessage" class="result"></div>
     </section>
-  </main>
 
-  <footer>
-    DEPOSIT 2.0 · Демонстрационный режим. Баланс и игровые результаты не являются деньгами.
-  </footer>
+  </section>
+</main>
 
-  <script>
-    "use strict";
+<script>
+const $ = id => document.getElementById(id);
 
-    const $ = (selector) => document.querySelector(selector);
+let user = null;
+let isRegister = false;
+let appleActive = false;
+let aviatorActive = false;
+let blackjackActive = false;
+let aviatorTimer = null;
 
-    let currentUser = null;
-    let selectedAdminUser = null;
+async function api(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
 
-    async function api(url, options = {}) {
-      const response = await fetch(url, {
-        credentials: "same-origin",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {})
-        }
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Сервер вернул неверный ответ");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Ошибка запроса");
+  }
+
+  return data;
+}
+
+function showResult(id, text, good = false) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = "result " + (good ? "good" : "bad");
+}
+
+function money(value) {
+  return Number(value || 0).toLocaleString("ru-RU");
+}
+
+async function refreshMe() {
+  const data = await api("/api/me");
+  user = data.user;
+
+  $("balance").textContent = money(user.balance);
+  $("gamerId").textContent = user.gamer_id;
+  $("playerName").textContent = "Игрок: " + user.username;
+}
+
+async function refreshRequests() {
+  const data = await api("/api/my-topup-requests");
+
+  if (!data.requests.length) {
+    $("myRequests").textContent = "Заявок пока нет.";
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.innerHTML =
+    "<thead><tr><th>ID</th><th>Сумма</th><th>Статус</th><th>Дата</th></tr></thead>";
+
+  const tbody = document.createElement("tbody");
+
+  for (const request of data.requests) {
+    const tr = document.createElement("tr");
+
+    [
+      request.id,
+      money(request.amount) + " UZS",
+      request.status,
+      request.created_at
+    ].forEach(value => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  $("myRequests").replaceChildren(table);
+}
+
+async function refreshHistory() {
+  const data = await api("/api/history");
+
+  const table = document.createElement("table");
+  table.innerHTML =
+    "<thead><tr><th>Операция</th><th>Сумма</th><th>Баланс</th><th>Дата</th></tr></thead>";
+
+  const tbody = document.createElement("tbody");
+
+  for (const item of data.history) {
+    const tr = document.createElement("tr");
+
+    [
+      item.type,
+      money(item.amount) + " UZS",
+      money(item.balance_after) + " UZS",
+      item.created_at
+    ].forEach(value => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  $("history").replaceChildren(table);
+}
+
+async function refreshAdmin() {
+  try {
+    await api("/api/admin/me");
+    $("adminPanel").classList.remove("hidden");
+
+    const data = await api("/api/admin/topup-requests");
+    const table = document.createElement("table");
+
+    table.innerHTML =
+      "<thead><tr><th>ID</th><th>Игрок</th><th>Game ID</th><th>Сумма</th><th>Статус</th><th>Действия</th></tr></thead>";
+
+    const tbody = document.createElement("tbody");
+
+    for (const r of data.requests) {
+      const tr = document.createElement("tr");
+
+      [r.id, r.username, r.gamer_id, money(r.amount) + " UZS", r.status]
+        .forEach(value => {
+          const td = document.createElement("td");
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+
+      const td = document.createElement("td");
+
+      if (r.status === "pending") {
+        const approve = document.createElement("button");
+        approve.textContent = "Одобрить";
+        approve.addEventListener("click", () => reviewTopup(r.id, "approve"));
+
+        const reject = document.createElement("button");
+        reject.textContent = "Отклонить";
+        reject.className = "danger";
+        reject.style.marginLeft = "6px";
+        reject.addEventListener("click", () => reviewTopup(r.id, "reject"));
+
+        td.append(approve, reject);
+      } else {
+        td.textContent = "Обработана";
+      }
+
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+    $("adminRequests").replaceChildren(table);
+
+    const userData = await api("/api/admin/users");
+    const userTable = document.createElement("table");
+
+    userTable.innerHTML =
+      "<thead><tr><th>ID</th><th>Логин</th><th>Game ID</th><th>Баланс</th></tr></thead>";
+
+    const userBody = document.createElement("tbody");
+
+    for (const u of userData.users) {
+      const tr = document.createElement("tr");
+
+      [u.id, u.username, u.gamer_id, money(u.balance) + " UZS"]
+        .forEach(value => {
+          const td = document.createElement("td");
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+
+      userBody.appendChild(tr);
+    }
+
+    userTable.appendChild(userBody);
+    $("adminUsers").replaceChildren(userTable);
+  } catch {
+    $("adminPanel").classList.add("hidden");
+  }
+}
+
+async function reviewTopup(id, action) {
+  try {
+    await api(`/api/admin/topup-requests/${id}/${action}`, {
+      method: "POST",
+      body: "{}"
+    });
+
+    showResult("adminMessage", "Заявка обработана.", true);
+
+    await refreshAdmin();
+    await refreshMe();
+    await refreshRequests();
+  } catch (error) {
+    showResult("adminMessage", error.message);
+  }
+}
+
+async function enterApp() {
+  $("auth").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  await refreshMe();
+  await refreshRequests();
+  await refreshHistory();
+  await refreshAdmin();
+}
+
+$("toggleAuth").addEventListener("click", () => {
+  isRegister = !isRegister;
+  $("authTitle").textContent = isRegister ? "Регистрация" : "Вход";
+  $("authSubmit").textContent = isRegister ? "Создать аккаунт" : "Войти";
+  $("toggleAuth").textContent =
+    isRegister ? "У меня уже есть аккаунт" : "Создать аккаунт";
+});
+
+$("authForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  try {
+    const data = await api(isRegister ? "/api/register" : "/api/login", {
+      method: "POST",
+      body: JSON.stringify({
+        username: $("username").value.trim(),
+        password: $("password").value
+      })
+    });
+
+    user = data.user;
+    $("authMessage").textContent = "";
+    await enterApp();
+  } catch (error) {
+    showResult("authMessage", error.message);
+  }
+});
+
+$("logout").addEventListener("click", async () => {
+  if (aviatorTimer) clearInterval(aviatorTimer);
+  aviatorTimer = null;
+
+  try {
+    await api("/api/logout", { method: "POST", body: "{}" });
+  } finally {
+    user = null;
+    $("app").classList.add("hidden");
+    $("auth").classList.remove("hidden");
+  }
+});
+
+$("topupForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  try {
+    await api("/api/topup-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        amount: Number($("topupAmount").value)
+      })
+    });
+
+    showResult(
+      "topupMessage",
+      "Тестовая заявка создана. Баланс изменится только после одобрения администратором.",
+      true
+    );
+
+    await refreshRequests();
+  } catch (error) {
+    showResult("topupMessage", error.message);
+  }
+});
+
+/* Три простые демо-игры */
+document.querySelectorAll("[data-simple]").forEach(button => {
+  button.addEventListener("click", async () => {
+    const game = button.dataset.simple;
+
+    try {
+      const data = await api("/api/demo-play", {
+        method: "POST",
+        body: JSON.stringify({
+          game,
+          bet: Number($("bet-" + game).value)
+        })
       });
 
-      const data = await response.json().catch(() => ({}));
+      showResult(
+        "result-" + game,
+        data.result + "\nВыплата: " + money(data.payout) + " UZS",
+        data.payout > 0
+      );
 
-      if (!response.ok) {
-        throw new Error(data.error || "Произошла ошибка.");
-      }
-
-      return data;
+      await refreshMe();
+      await refreshHistory();
+    } catch (error) {
+      showResult("result-" + game, error.message);
     }
+  });
+});
 
-    function showMessage(selector, text, error = false) {
-      const el = $(selector);
-      el.textContent = text;
-      el.className = "message " + (error ? "error" : "success");
-    }
+/* Apple of Fortune */
+$("appleStart").addEventListener("click", async () => {
+  try {
+    if (appleActive) throw new Error("Завершите текущую игру");
 
-    function formatNumber(value) {
-      return Number(value || 0).toLocaleString("ru-RU");
-    }
+    const data = await api("/api/games/apple/start", {
+      method: "POST",
+      body: JSON.stringify({ bet: Number($("bet-apple").value) })
+    });
 
-    function showLoggedOut() {
-      currentUser = null;
-      $("#authSection").classList.remove("hidden");
-      $("#accountSection").classList.add("hidden");
-      $("#adminPanel").classList.add("hidden");
-      $("#headerStatus").textContent = "Демо-платформа";
-    }
+    appleActive = true;
+    $("appleArea").classList.remove("hidden");
+    $("appleStep").textContent = "0";
+    $("appleMultiplier").textContent = "1×";
 
-    async function loadMe() {
-      try {
-        const data = await api("/api/me");
+    showResult("result-apple", "Выберите яблоко.", true);
+    await refreshMe();
+  } catch (error) {
+    showResult("result-apple", error.message);
+  }
+});
 
-        if (!data.user) {
-          showLoggedOut();
-          return;
-        }
+document.querySelectorAll("[data-apple]").forEach(button => {
+  button.addEventListener("click", async () => {
+    if (!appleActive) return;
 
-        currentUser = data.user;
-        $("#authSection").classList.add("hidden");
-        $("#accountSection").classList.remove("hidden");
-        $("#welcome").textContent = "Привет, " + currentUser.username + "!";
-        $("#balance").textContent = formatNumber(currentUser.balance);
-        $("#headerStatus").textContent = "Выполнен вход";
+    try {
+      const data = await api("/api/games/apple/pick", {
+        method: "POST",
+        body: JSON.stringify({ choice: Number(button.dataset.apple) })
+      });
 
-        await checkAdmin();
-      } catch (error) {
-        showMessage("#authMessage", error.message, true);
-      }
-    }
-
-    async function authenticate(mode) {
-      const username = $("#username").value.trim();
-      const password = $("#password").value;
-
-      if (!username || !password) {
-        showMessage("#authMessage", "Введи логин и пароль.", true);
+      if (data.lost) {
+        appleActive = false;
+        $("appleArea").classList.add("hidden");
+        showResult("result-apple", data.message);
+        await refreshMe();
+        await refreshHistory();
         return;
       }
 
-      const button = mode === "login" ? $("#loginButton") : $("#registerButton");
-      button.disabled = true;
+      $("appleStep").textContent = data.game.step;
+      $("appleMultiplier").textContent = data.game.multiplier + "×";
 
-      try {
-        await api(mode === "login" ? "/api/login" : "/api/register", {
-          method: "POST",
-          body: JSON.stringify({ username, password })
-        });
-
-        $("#password").value = "";
-        showMessage("#authMessage", "");
-        await loadMe();
-      } catch (error) {
-        showMessage("#authMessage", error.message, true);
-      } finally {
-        button.disabled = false;
-      }
+      showResult(
+        "result-apple",
+        "Удачный шаг! Можно выбрать ещё одно яблоко или забрать выигрыш.",
+        true
+      );
+    } catch (error) {
+      showResult("result-apple", error.message);
     }
+  });
+});
 
-    $("#loginButton").addEventListener("click", () => authenticate("login"));
-    $("#registerButton").addEventListener("click", () => authenticate("register"));
-
-    $("#password").addEventListener("keydown", (event) => {
-      if (event.key === "Enter") authenticate("login");
+$("appleCashout").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/games/apple/cashout", {
+      method: "POST",
+      body: "{}"
     });
 
-    $("#logoutButton").addEventListener("click", async () => {
-      try {
-        await api("/api/logout", { method: "POST", body: "{}" });
-        showLoggedOut();
-      } catch (error) {
-        showMessage("#accountMessage", error.message, true);
-      }
+    appleActive = false;
+    $("appleArea").classList.add("hidden");
+
+    showResult(
+      "result-apple",
+      `Выплата: ${money(data.payout)} UZS (${data.multiplier}×).`,
+      true
+    );
+
+    await refreshMe();
+    await refreshHistory();
+  } catch (error) {
+    showResult("result-apple", error.message);
+  }
+});
+
+/* Aviator */
+function stopAviatorTimer() {
+  if (aviatorTimer) clearInterval(aviatorTimer);
+  aviatorTimer = null;
+}
+
+$("aviatorStart").addEventListener("click", async () => {
+  try {
+    if (aviatorActive) throw new Error("Завершите текущий раунд");
+
+    await api("/api/games/aviator/start", {
+      method: "POST",
+      body: JSON.stringify({ bet: Number($("bet-aviator").value) })
     });
 
-    $("#refreshButton").addEventListener("click", loadMe);
+    aviatorActive = true;
+    $("aviatorArea").classList.remove("hidden");
 
-    async function loadHistory() {
+    showResult("result-aviator", "Полёт начался!", true);
+    await refreshMe();
+
+    stopAviatorTimer();
+
+    aviatorTimer = setInterval(async () => {
+      if (!aviatorActive) return;
+
       try {
-        const data = await api("/api/history");
-        const list = $("#historyList");
-        list.replaceChildren();
+        const state = await api("/api/games/aviator/state");
 
-        const items = data.items || data.history || [];
+        if (state.crashed) {
+          aviatorActive = false;
+          stopAviatorTimer();
+          $("aviatorArea").classList.add("hidden");
 
-        if (!items.length) {
-          list.textContent = "Операций пока нет.";
-          return;
-        }
-
-        items.forEach((item) => {
-          const row = document.createElement("div");
-          row.className = "history-item";
-
-          const description = document.createElement("span");
-          description.textContent =
-            String(item.type || "Операция") + " · " +
-            String(item.created_at || "");
-
-          const amount = document.createElement("strong");
-          amount.textContent = formatNumber(item.amount);
-
-          row.append(description, amount);
-          list.append(row);
-        });
-      } catch (error) {
-        $("#historyList").textContent = error.message;
-      }
-    }
-
-    $("#historyButton").addEventListener("click", loadHistory);
-
-    document.querySelectorAll("[data-game]").forEach((button) => {
-      button.addEventListener("click", async () => {
-        button.disabled = true;
-
-        try {
-          const result = await api("/api/demo-play", {
-            method: "POST",
-            body: JSON.stringify({
-              game: button.dataset.game,
-              bet: 100
-            })
-          });
-
-          showMessage(
-            "#gameMessage",
-            result.message || "Игра завершена."
+          showResult(
+            "result-aviator",
+            `Самолёт упал на ${state.multiplier}×. Ставка потеряна.`
           );
 
-          await loadMe();
-          await loadHistory();
-        } catch (error) {
-          showMessage("#gameMessage", error.message, true);
-        } finally {
-          button.disabled = false;
+          await refreshMe();
+          await refreshHistory();
+        } else {
+          $("aviatorMultiplier").textContent =
+            Number(state.multiplier).toFixed(2) + "×";
         }
-      });
+      } catch (error) {
+        aviatorActive = false;
+        stopAviatorTimer();
+        $("aviatorArea").classList.add("hidden");
+        showResult("result-aviator", error.message);
+      }
+    }, 300);
+  } catch (error) {
+    showResult("result-aviator", error.message);
+  }
+});
+
+$("aviatorCashout").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/games/aviator/cashout", {
+      method: "POST",
+      body: "{}"
     });
 
-    async function checkAdmin() {
-      try {
-        await api("/api/admin/me");
-        $("#adminPanel").classList.remove("hidden");
-        await loadAdminUsers();
-      } catch {
-        $("#adminPanel").classList.add("hidden");
-      }
+    aviatorActive = false;
+    stopAviatorTimer();
+    $("aviatorArea").classList.add("hidden");
+
+    showResult(
+      "result-aviator",
+      data.crashed
+        ? "Самолёт уже упал. Ставка потеряна."
+        : `Выплата: ${money(data.payout)} UZS (${Number(data.multiplier).toFixed(2)}×).`,
+      !data.crashed
+    );
+
+    await refreshMe();
+    await refreshHistory();
+  } catch (error) {
+    showResult("result-aviator", error.message);
+  }
+});
+
+/* Blackjack */
+function showCards(id, cards) {
+  $(id).textContent = (cards || [])
+    .map(card => card.rank + card.suit)
+    .join("  ");
+}
+
+function renderBlackjack(data) {
+  showCards("bjPlayer", data.player);
+  $("bjPlayerValue").textContent = data.playerValue ?? "";
+  showCards("bjDealer", data.dealer);
+
+  $("bjDealerValue").textContent =
+    data.dealerValue == null
+      ? "Очки дилера скрыты"
+      : "Очки дилера: " + data.dealerValue;
+
+  if (data.finished !== undefined) {
+    blackjackActive = !data.finished;
+  }
+}
+
+async function blackjackAction(action) {
+  try {
+    const data = await api("/api/games/blackjack/" + action, {
+      method: "POST",
+      body: "{}"
+    });
+
+    if (data.player) renderBlackjack(data);
+
+    if (data.finished !== false) {
+      blackjackActive = false;
+      $("blackjackArea").classList.add("hidden");
+
+      showResult(
+        "result-blackjack",
+        `${data.result}\nВыплата: ${money(data.payout)} UZS`,
+        data.payout > 0
+      );
+
+      await refreshMe();
+      await refreshHistory();
+    }
+  } catch (error) {
+    showResult("result-blackjack", error.message);
+  }
+}
+
+$("blackjackStart").addEventListener("click", async () => {
+  try {
+    if (blackjackActive) throw new Error("Завершите текущий раунд");
+
+    const data = await api("/api/games/blackjack/start", {
+      method: "POST",
+      body: JSON.stringify({ bet: Number($("bet-blackjack").value) })
+    });
+
+    if (data.finished) {
+      showResult(
+        "result-blackjack",
+        `${data.result}\nВыплата: ${money(data.payout)} UZS`,
+        data.payout > 0
+      );
+
+      await refreshMe();
+      await refreshHistory();
+      return;
     }
 
-    async function loadAdminUsers() {
-      try {
-        const data = await api("/api/admin/users");
-        const container = $("#adminUsers");
-        container.replaceChildren();
+    $("blackjackArea").classList.remove("hidden");
+    renderBlackjack(data);
 
-        if (!Array.isArray(data.users) || data.users.length === 0) {
-          container.textContent = "Пользователей пока нет.";
-          return;
-        }
+    showResult("result-blackjack", "Ваш ход.", true);
+    await refreshMe();
+  } catch (error) {
+    showResult("result-blackjack", error.message);
+  }
+});
 
-        data.users.forEach((user) => {
-          const row = document.createElement("div");
-          row.className = "history-item";
+$("bjHit").addEventListener("click", () => blackjackAction("hit"));
+$("bjStand").addEventListener("click", () => blackjackAction("stand"));
 
-          const info = document.createElement("div");
-          const name = document.createElement("strong");
-          name.textContent = user.username;
+$("refreshHistory").addEventListener("click", async () => {
+  try {
+    await refreshHistory();
+    await refreshMe();
+  } catch (error) {
+    alert(error.message);
+  }
+});
 
-          const details = document.createElement("div");
-          details.className = "muted";
-          details.textContent =
-            "ID: " + user.id + " · Создан: " + user.created_at;
+$("refreshAdmin").addEventListener("click", refreshAdmin);
 
-          const balance = document.createElement("div");
-          balance.textContent =
-            "Демо-баланс: " + formatNumber(user.balance);
-
-          info.append(name, details, balance);
-
-          const actions = document.createElement("div");
-          actions.style.display = "flex";
-          actions.style.flexDirection = "column";
-          actions.style.gap = "6px";
-
-          const adjust = document.createElement("button");
-          adjust.textContent = "Изменить демо-баланс";
-          adjust.addEventListener("click", () => {
-            selectedAdminUser = Number(user.id);
-            $("#adminUserId").value = user.id;
-            $("#adminAmount").value = "";
-            $("#adminAdjustBox").classList.remove("hidden");
-            $("#adminAmount").focus();
-          });
-
-          const history = document.createElement("button");
-          history.textContent = "История";
-          history.addEventListener("click", async () => {
-            try {
-              const result = await api(
-                "/api/admin/users/" + encodeURIComponent(user.id) + "/history"
-              );
-
-              const items = result.items || result.history || [];
-              const lines = items.map((item) =>
-                [
-                  item.created_at,
-                  item.type,
-                  item.amount,
-                  "Баланс: " + item.balance_after
-                ].join(" · ")
-              );
-
-              alert(
-                "История " + user.username + ":\n\n" +
-                (lines.join("\n") || "Операций нет.")
-              );
-            } catch (error) {
-              showMessage("#adminMessage", error.message, true);
-            }
-          });
-
-          actions.append(adjust, history);
-          row.append(info, actions);
-          container.append(row);
-        });
-
-        showMessage("#adminMessage", "Список пользователей обновлён.");
-      } catch (error) {
-        showMessage("#adminMessage", error.message, true);
-      }
-    }
-
-    $("#adminRefresh").addEventListener("click", loadAdminUsers);
-
-    $("#adminCancel").addEventListener("click", () => {
-      selectedAdminUser = null;
-      $("#adminAdjustBox").classList.add("hidden");
-    });
-
-    $("#adminAdjust").addEventListener("click", async () => {
-      const userId = Number($("#adminUserId").value);
-      const amount = Number($("#adminAmount").value);
-
-      if (
-        !Number.isSafeInteger(userId) ||
-        userId < 1 ||
-        userId !== selectedAdminUser ||
-        !Number.isSafeInteger(amount) ||
-        amount === 0 ||
-        Math.abs(amount) > 1000000
-      ) {
-        showMessage("#adminMessage", "Проверь ID и сумму.", true);
-        return;
-      }
-
-      const button = $("#adminAdjust");
-      button.disabled = true;
-
-      try {
-        const result = await api("/api/admin/demo-adjust", {
-          method: "POST",
-          body: JSON.stringify({ userId, amount })
-        });
-
-        showMessage("#adminMessage", result.message || "Демо-баланс изменён.");
-        $("#adminAdjustBox").classList.add("hidden");
-        selectedAdminUser = null;
-        await loadAdminUsers();
-      } catch (error) {
-        showMessage("#adminMessage", error.message, true);
-      } finally {
-        button.disabled = false;
-      }
-    });
-
-    loadMe();
-  </script>
+/* Восстановление сессии */
+(async function init() {
+  try {
+    await enterApp();
+  } catch {
+    $("auth").classList.remove("hidden");
+    $("app").classList.add("hidden");
+  }
+})();
+</script>
 </body>
 </html>
