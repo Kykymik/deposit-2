@@ -8,358 +8,125 @@
 <style>
 :root {
   color-scheme: dark;
-  --bg: #10131d;
-  --panel: #191e2b;
-  --panel2: #222a3b;
-  --line: #30394d;
-  --text: #f5f7ff;
-  --muted: #9ca8bf;
-  --green: #40e0a0;
-  --red: #ff647c;
-  --blue: #6c8cff;
-  --gold: #ffd36b;
+  --bg:#10131d; --panel:#191e2b; --panel2:#222a3b;
+  --line:#30394d; --text:#f5f7ff; --muted:#9ca8bf;
+  --green:#40e0a0; --red:#ff647c; --blue:#6c8cff; --gold:#ffd36b;
 }
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-body.game-open { overflow: hidden; }
-button, input, select, textarea { font: inherit; }
-button {
-  cursor: pointer;
-  border: 0;
-  border-radius: 12px;
-  padding: 12px 16px;
-  background: var(--green);
-  color: #08271b;
-  font-weight: 750;
-  transition: transform .16s ease, filter .16s ease, opacity .16s ease;
-}
-button:active:not(:disabled) { transform: scale(.96); }
-button:hover:not(:disabled) { filter: brightness(1.08); }
-button:disabled { opacity: .5; cursor: not-allowed; }
-input, textarea, select {
-  width: 100%;
-  padding: 13px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: #111724;
-  color: var(--text);
-  outline: none;
-}
-input:focus, textarea:focus { border-color: var(--blue); }
-label { display: block; margin: 12px 0 6px; color: var(--muted); font-size: 14px; }
-h1, h2, h3, p { margin-top: 0; }
-h2 { font-size: 21px; }
-small, .muted { color: var(--muted); }
-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 15px max(16px, calc((100% - 1100px)/2));
-  border-bottom: 1px solid var(--line);
-  background: rgba(16,19,29,.96);
-  backdrop-filter: blur(12px);
-}
-.logo { font-weight: 900; font-size: 20px; letter-spacing: 1px; }
-.logo span { color: var(--green); }
-.balance { color: var(--green); font-weight: 800; }
-main { max-width: 1100px; margin: auto; padding: 20px 16px 50px; }
-.card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 16px;
-  min-width: 0;
-}
-.grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-.actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
-.actions button { flex: 1 1 auto; }
-.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
-.danger { background: #572737; color: #ffdfe5; }
-.blue { background: var(--blue); color: white; }
-.hidden { display: none !important; }
-.tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 5px; }
-.tabs button { flex-shrink: 0; background: var(--panel2); color: var(--text); }
-.tabs button.active { background: var(--green); color: #08271b; }
-.notice { padding: 12px; border-radius: 10px; background: var(--panel2); margin: 12px 0; }
-.status { display: inline-block; padding: 5px 9px; border-radius: 20px; background: var(--panel2); font-size: 12px; }
-.status.approved { color: var(--green); }
-.status.rejected { color: var(--red); }
-.list-item { border-top: 1px solid var(--line); padding: 13px 0; overflow-wrap: anywhere; }
-.list-item:first-child { border-top: 0; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body.game-open{overflow:hidden}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:12px 16px;background:var(--green);color:#08271b;font-weight:750;transition:transform .16s,filter .16s,opacity .16s}
+button:active:not(:disabled){transform:scale(.96)}
+button:hover:not(:disabled){filter:brightness(1.08)}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,textarea,select{width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;background:#111724;color:var(--text);outline:none}
+input:focus,textarea:focus{border-color:var(--blue)}
+label{display:block;margin:12px 0 6px;color:var(--muted);font-size:14px}
+h1,h2,h3,p{margin-top:0}
+h2{font-size:21px}
+small,.muted{color:var(--muted)}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px max(16px,calc((100% - 1100px)/2));border-bottom:1px solid var(--line);background:rgba(16,19,29,.96);backdrop-filter:blur(12px)}
+.logo{font-weight:900;font-size:20px;letter-spacing:1px}
+.logo span{color:var(--green)}
+.balance{color:var(--green);font-weight:800}
+main{max-width:1100px;margin:auto;padding:20px 16px 50px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.actions button{flex:1 1 auto}
+.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.danger{background:#572737;color:#ffdfe5}
+.blue{background:var(--blue);color:white}
+.hidden{display:none!important}
+.tabs{display:flex;gap:8px;overflow-x:auto;margin-bottom:18px;padding-bottom:5px}
+.tabs button{flex-shrink:0;background:var(--panel2);color:var(--text)}
+.tabs button.active{background:var(--green);color:#08271b}
+.notice{padding:12px;border-radius:10px;background:var(--panel2);margin:12px 0}
+.status{display:inline-block;padding:5px 9px;border-radius:20px;background:var(--panel2);font-size:12px}
+.status.approved{color:var(--green)}
+.status.rejected{color:var(--red)}
+.list-item{border-top:1px solid var(--line);padding:13px 0;overflow-wrap:anywhere}
+.list-item:first-child{border-top:0}
+.admin-section{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+footer{text-align:center;padding:24px;color:var(--muted);font-size:12px}
 
-/* Игровые карточки */
-.game-card {
-  position: relative;
-  min-width: 0;
-  transition: border-color .2s ease, box-shadow .2s ease;
-}
-.game-card:hover { border-color: #485875; }
-.game-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.game-heading h2 { margin-bottom: 12px; }
-.expand-button {
-  flex: 0 0 auto !important;
-  padding: 9px 12px;
-  margin-bottom: 10px;
-  background: #303a50;
-  color: white;
-  border: 1px solid #45516c;
-}
-.game-stage {
-  position: relative;
-  min-height: 250px;
-  border-radius: 16px;
-  background: radial-gradient(ellipse at 50% 5%, #304966, #182333 48%, #10131d 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  text-align: center;
-  padding: 20px;
-  overflow: hidden;
-  isolation: isolate;
-}
-.game-stage::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  opacity: .18;
-  background-image: linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(to bottom, black, transparent);
-}
-.multiplier {
-  font-size: clamp(40px, 10vw, 72px);
-  font-weight: 900;
-  color: var(--green);
-  text-shadow: 0 0 25px rgba(64,224,160,.2);
-  transition: color .2s ease;
-}
-.plane {
-  font-size: 45px;
-  display: inline-block;
-  transform: translate(0,0) rotate(-8deg);
-  transform-origin: center;
-  will-change: transform;
-}
-.aviator-stage.flying .plane {
-  animation: planeFlight 3s ease-in-out infinite alternate;
-}
-.aviator-stage.flying .multiplier {
-  animation: multiplierGlow 1.2s ease-in-out infinite alternate;
-}
-.aviator-stage.crashed .plane {
-  animation: planeCrash .85s ease-in forwards;
-}
-.aviator-stage.won .multiplier {
-  animation: winPulse .65s ease-in-out 2;
-  color: var(--gold);
-}
-.aviator-trail {
-  position: absolute;
-  left: 8%;
-  bottom: 20%;
-  width: 35%;
-  height: 3px;
-  opacity: 0;
-  border-radius: 99px;
-  background: linear-gradient(90deg, transparent, #6c8cff, #40e0a0);
-  transform: rotate(-22deg);
-}
-.aviator-stage.flying .aviator-trail {
-  opacity: .85;
-  animation: trailMove 1s ease-in-out infinite alternate;
-}
-@keyframes planeFlight {
-  0% { transform: translate(-25px, 22px) rotate(-12deg); }
-  35% { transform: translate(0, -5px) rotate(-5deg); }
-  70% { transform: translate(35px, -35px) rotate(-12deg); }
-  100% { transform: translate(70px, -55px) rotate(-7deg); }
-}
-@keyframes planeCrash {
-  0% { transform: translate(50px,-30px) rotate(-10deg); opacity: 1; }
-  70% { transform: translate(90px,60px) rotate(35deg); opacity: 1; }
-  100% { transform: translate(130px,130px) rotate(80deg); opacity: 0; }
-}
-@keyframes multiplierGlow {
-  from { text-shadow: 0 0 8px rgba(64,224,160,.15); }
-  to { text-shadow: 0 0 30px rgba(64,224,160,.65); }
-}
-@keyframes trailMove {
-  from { transform: translateX(-5px) rotate(-22deg); }
-  to { transform: translateX(35px) rotate(-22deg); }
-}
-@keyframes winPulse {
-  0%,100% { transform: scale(1); }
-  50% { transform: scale(1.12); text-shadow: 0 0 35px rgba(255,211,107,.75); }
-}
+/* Игры */
+.game-card{position:relative;min-width:0;transition:border-color .2s,box-shadow .2s}
+.game-card:hover{border-color:#485875}
+.game-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.game-heading h2{margin-bottom:12px}
+.expand-button{flex:0 0 auto!important;padding:9px 12px;margin-bottom:10px;background:#303a50;color:white;border:1px solid #45516c}
+.game-stage{position:relative;min-height:250px;border-radius:16px;background:radial-gradient(ellipse at 50% 5%,#304966,#182333 48%,#10131d 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px;overflow:hidden;isolation:isolate}
+.game-stage::before{content:"";position:absolute;z-index:-1;inset:0;opacity:.18;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:32px 32px}
+.multiplier{font-size:clamp(40px,10vw,72px);font-weight:900;color:var(--green);text-shadow:0 0 25px rgba(64,224,160,.2)}
+.plane{font-size:45px;display:inline-block;transform-origin:center;will-change:transform}
+.aviator-stage.flying .plane{animation:planeFlight 2.6s ease-in-out infinite alternate}
+.aviator-stage.flying .multiplier{animation:multiplierGlow 1s ease-in-out infinite alternate}
+.aviator-stage.crashed .plane{animation:planeCrash .9s ease-in forwards}
+.aviator-stage.won .multiplier{animation:winPulse .65s ease-in-out 2;color:var(--gold)}
+.aviator-trail{position:absolute;left:8%;bottom:20%;width:35%;height:3px;opacity:0;border-radius:99px;background:linear-gradient(90deg,transparent,#6c8cff,#40e0a0);transform:rotate(-22deg)}
+.aviator-stage.flying .aviator-trail{opacity:.85;animation:trailMove .8s ease-in-out infinite alternate}
+@keyframes planeFlight{0%{transform:translate(-30px,25px) rotate(-12deg)}40%{transform:translate(5px,-8px) rotate(-5deg)}75%{transform:translate(45px,-38px) rotate(-12deg)}100%{transform:translate(70px,-55px) rotate(-7deg)}}
+@keyframes planeCrash{0%{transform:translate(40px,-30px) rotate(-10deg);opacity:1}70%{transform:translate(90px,60px) rotate(35deg);opacity:1}100%{transform:translate(130px,130px) rotate(80deg);opacity:0}}
+@keyframes multiplierGlow{from{text-shadow:0 0 8px rgba(64,224,160,.15)}to{text-shadow:0 0 30px rgba(64,224,160,.7)}}
+@keyframes trailMove{from{transform:translateX(-5px) rotate(-22deg)}to{transform:translateX(35px) rotate(-22deg)}}
+@keyframes winPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12);text-shadow:0 0 35px rgba(255,211,107,.75)}}
 
 /* Apple of Fortune */
-.apple-grid {
-  display: grid;
-  grid-template-columns: repeat(4,minmax(0,1fr));
-  gap: 8px;
-  width: 100%;
-  max-width: 420px;
-  margin: 12px auto;
-}
-.apple-cell {
-  position: relative;
-  background: linear-gradient(145deg,#31475c,#233346);
-  color: white;
-  min-height: 62px;
-  font-size: 25px;
-  padding: 8px;
-  border: 1px solid #40566c;
-  box-shadow: inset 0 1px rgba(255,255,255,.05);
-  transform-style: preserve-3d;
-}
-.apple-cell:not(:disabled):hover { transform: translateY(-3px); }
-.apple-cell.open {
-  background: linear-gradient(145deg,#246b4e,#17422f);
-  border-color: #40e0a0;
-  animation: appleReveal .45s cubic-bezier(.2,.8,.2,1) both;
-  box-shadow: 0 0 18px rgba(64,224,160,.18);
-}
-.apple-cell.bad {
-  background: linear-gradient(145deg,#8a3048,#451c30);
-  border-color: var(--red);
-  animation: appleBad .45s ease both;
-}
-.apple-cell.current-row {
-  border-color: var(--gold);
-  box-shadow: 0 0 12px rgba(255,211,107,.12);
-}
-@keyframes appleReveal {
-  0% { transform: scale(.65) rotateY(90deg); opacity: .3; }
-  65% { transform: scale(1.12) rotateY(0); opacity: 1; }
-  100% { transform: scale(1); }
-}
-@keyframes appleBad {
-  0%,100% { transform: translateX(0) scale(1); }
-  20%,60% { transform: translateX(-5px) scale(1.06); }
-  40%,80% { transform: translateX(5px) scale(1.02); }
-}
-.apple-status-win { color: var(--green); animation: statusPop .4s ease both; }
-.apple-status-loss { color: var(--red); animation: statusPop .4s ease both; }
-@keyframes statusPop {
-  from { transform: scale(.95); opacity: .5; }
-  to { transform: scale(1); opacity: 1; }
-}
+.apple-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%;max-width:420px;margin:12px auto}
+.apple-cell{position:relative;background:linear-gradient(145deg,#31475c,#233346);color:white;min-height:62px;font-size:25px;padding:8px;border:1px solid #40566c;box-shadow:inset 0 1px rgba(255,255,255,.05);transform-style:preserve-3d;animation:cellAppear .35s ease both}
+.apple-cell:nth-child(4n+1){animation-delay:.02s}
+.apple-cell:nth-child(4n+2){animation-delay:.05s}
+.apple-cell:nth-child(4n+3){animation-delay:.08s}
+.apple-cell:nth-child(4n){animation-delay:.11s}
+.apple-cell:not(:disabled):hover{transform:translateY(-3px)}
+.apple-cell.open{background:linear-gradient(145deg,#246b4e,#17422f);border-color:var(--green);animation:appleReveal .48s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 0 18px rgba(64,224,160,.25)}
+.apple-cell.bad{background:linear-gradient(145deg,#8a3048,#451c30);border-color:var(--red);animation:appleBad .45s ease both}
+.apple-cell.current-row{border-color:var(--gold);box-shadow:0 0 12px rgba(255,211,107,.15)}
+@keyframes cellAppear{from{opacity:0;transform:translateY(12px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes appleReveal{0%{transform:scale(.65) rotateY(90deg);opacity:.3}65%{transform:scale(1.12) rotateY(0);opacity:1}100%{transform:scale(1)}}
+@keyframes appleBad{0%,100%{transform:translateX(0) scale(1)}20%,60%{transform:translateX(-5px) scale(1.06)}40%,80%{transform:translateX(5px) scale(1.02)}}
+.apple-status-win{color:var(--green);animation:statusPop .4s ease both}
+.apple-status-loss{color:var(--red);animation:statusPop .4s ease both}
+@keyframes statusPop{from{transform:scale(.95);opacity:.5}to{transform:scale(1);opacity:1}}
 
 /* Blackjack */
-.cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  min-height: 75px;
-  padding: 5px 0 12px;
-}
-.playing-card {
-  position: relative;
-  background: #f6f5ee;
-  color: #192032;
-  border-radius: 10px;
-  padding: 14px 10px;
-  min-width: 52px;
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 20px;
-  box-shadow: 0 5px 12px rgba(0,0,0,.25);
-  animation: dealCard .42s cubic-bezier(.2,.8,.2,1) both;
-  transform-origin: top center;
-}
-.playing-card:nth-child(2) { animation-delay: .08s; }
-.playing-card:nth-child(3) { animation-delay: .16s; }
-.playing-card:nth-child(4) { animation-delay: .24s; }
-.playing-card:nth-child(5) { animation-delay: .32s; }
-.playing-card:nth-child(n+6) { animation-delay: .04s; }
-@keyframes dealCard {
-  from { opacity: 0; transform: translateY(-28px) rotate(-9deg) scale(.75); }
-  to { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
-}
-.blackjack-win { border-color: var(--green); box-shadow: 0 0 24px rgba(64,224,160,.2); }
-.blackjack-loss { border-color: var(--red); }
-.blackjack-draw { border-color: var(--gold); }
+.cards{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;min-height:75px;padding:5px 0 12px}
+.playing-card{position:relative;background:#f6f5ee;color:#192032;border-radius:10px;padding:14px 10px;min-width:52px;min-height:72px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;box-shadow:0 5px 12px rgba(0,0,0,.25);animation:dealCard .48s cubic-bezier(.2,.8,.2,1) both;transform-origin:top center}
+@keyframes dealCard{0%{opacity:0;transform:translateY(-35px) rotate(-12deg) scale(.7)}65%{opacity:1;transform:translateY(5px) rotate(3deg) scale(1.05)}100%{opacity:1;transform:translateY(0) rotate(0) scale(1)}}
+.blackjack-win{border-color:var(--green);box-shadow:0 0 24px rgba(64,224,160,.2)}
+.blackjack-loss{border-color:var(--red)}
+.blackjack-draw{border-color:var(--gold)}
 
-/* Полноэкранный режим игры */
-.game-card.expanded {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
-  max-width: none;
-  margin: 0;
-  padding: 16px clamp(12px, 4vw, 44px) 28px;
-  border: 0;
-  border-radius: 0;
-  overflow-y: auto;
-  background: var(--bg);
-  animation: fullscreenEnter .22s ease both;
+/* Полноэкранный режим */
+.game-card.expanded{position:fixed;inset:0;z-index:1000;width:100%;height:100vh;height:100dvh;max-width:none;margin:0;padding:16px clamp(12px,4vw,44px) 28px;border:0;border-radius:0;overflow-y:auto;background:var(--bg);animation:fullscreenEnter .22s ease both}
+.game-card.expanded .game-heading{position:sticky;top:-16px;z-index:3;padding:12px 0 4px;background:var(--bg)}
+.game-card.expanded .game-heading h2{font-size:clamp(22px,3vw,30px)}
+.game-card.expanded .game-stage{min-height:min(48vh,440px)}
+.game-card.expanded .multiplier{font-size:clamp(58px,13vw,110px)}
+.game-card.expanded .plane{font-size:clamp(52px,8vw,78px)}
+.game-card.expanded .apple-grid{max-width:520px;gap:12px}
+.game-card.expanded .apple-cell{min-height:clamp(58px,10vh,90px);font-size:clamp(25px,4vw,36px)}
+.game-card.expanded .playing-card{min-width:64px;min-height:90px;font-size:24px}
+.close-game{background:#572737!important;color:white!important;border-color:#854153!important}
+@keyframes fullscreenEnter{from{opacity:.6;transform:scale(.985)}to{opacity:1;transform:scale(1)}}
+@media(max-width:700px){
+  .grid{grid-template-columns:1fr}
+  header{padding:12px 14px}
+  main{padding:15px 12px 35px}
+  .card{padding:15px}
+  .game-card.expanded{padding:10px 12px 24px}
+  .game-card.expanded .game-heading{top:-10px}
+  .game-card.expanded .game-stage{min-height:230px}
+  .game-card.expanded .apple-grid{gap:6px}
+  .game-card.expanded .apple-cell{min-height:58px;padding:6px}
+  .game-heading{align-items:flex-start}
+  .expand-button{font-size:12px;padding:8px}
 }
-.game-card.expanded .game-heading h2 {
-  font-size: clamp(22px, 3vw, 30px);
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important}
 }
-.game-card.expanded .game-stage {
-  min-height: min(48vh, 440px);
-}
-.game-card.expanded .multiplier {
-  font-size: clamp(58px, 13vw, 110px);
-}
-.game-card.expanded .plane { font-size: clamp(52px, 8vw, 78px); }
-.game-card.expanded .apple-grid { max-width: 520px; gap: 12px; }
-.game-card.expanded .apple-cell { min-height: clamp(58px, 10vh, 90px); font-size: clamp(25px, 4vw, 36px); }
-.game-card.expanded .playing-card { min-width: 64px; min-height: 90px; font-size: 24px; }
-.game-card.expanded .game-heading { position: sticky; top: -16px; z-index: 3; padding: 12px 0 4px; background: var(--bg); }
-.close-game { background: #572737; color: #fff; border: 1px solid #854153; }
-@keyframes fullscreenEnter {
-  from { opacity: .6; transform: scale(.985); }
-  to { opacity: 1; transform: scale(1); }
-}
-@media(max-width:700px) {
-  .grid { grid-template-columns: 1fr; }
-  header { padding: 12px 14px; }
-  main { padding: 15px 12px 35px; }
-  .card { padding: 15px; }
-  .game-card.expanded { padding: 10px 12px 24px; }
-  .game-card.expanded .game-heading { top: -10px; }
-  .game-card.expanded .game-stage { min-height: 230px; }
-  .game-card.expanded .apple-grid { gap: 6px; }
-  .game-card.expanded .apple-cell { min-height: 58px; padding: 6px; }
-}
-@media(prefers-reduced-motion:reduce) {
-  *, *::before, *::after {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
-  }
-}
-.admin-section { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
-footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
 <body>
@@ -370,901 +137,725 @@ footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px
 </header>
 
 <main>
-  <div id="message" class="notice hidden" role="status" aria-live="polite"></div>
+<div id="message" class="notice hidden" role="status" aria-live="polite"></div>
 
-  <section id="authSection" class="card">
-    <h1>Добро пожаловать</h1>
-    <p class="muted">Войди в аккаунт или создай новый.</p>
+<section id="authSection" class="card">
+  <h1>Добро пожаловать</h1>
+  <p class="muted">Войди в аккаунт или создай новый.</p>
+  <div class="grid">
+    <form id="loginForm">
+      <h2>Вход</h2>
+      <label for="loginName">Логин</label>
+      <input id="loginName" name="username" autocomplete="username" required maxlength="24">
+      <label for="loginPassword">Пароль</label>
+      <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+      <div class="actions"><button type="submit">Войти</button></div>
+    </form>
+    <form id="registerForm">
+      <h2>Регистрация</h2>
+      <label for="registerName">Логин</label>
+      <input id="registerName" name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" required>
+      <label for="registerPassword">Пароль (от 8 символов)</label>
+      <input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+      <div class="actions"><button type="submit">Создать аккаунт</button></div>
+    </form>
+  </div>
+  <div class="admin-section">
+    <details>
+      <summary>Вход администратора</summary>
+      <form id="adminLoginForm">
+        <label for="adminName">Логин администратора</label>
+        <input id="adminName" name="username" autocomplete="username" required>
+        <label for="adminPassword">Пароль администратора</label>
+        <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
+        <div class="actions"><button type="submit" class="blue">Войти в админ-панель</button></div>
+      </form>
+    </details>
+  </div>
+</section>
+
+<section id="appSection" class="hidden">
+  <div class="card">
+    <div class="muted">Ваш аккаунт</div>
+    <h2 id="welcomeName">Пользователь</h2>
+    <div class="balance" style="font-size:30px" id="mainBalance">0 UZS</div>
+    <div class="muted">Виртуальный баланс</div>
+  </div>
+  <nav class="tabs" aria-label="Разделы">
+    <button type="button" class="active" data-tab="games">Игры</button>
+    <button type="button" data-tab="topup">Пополнение</button>
+    <button type="button" data-tab="withdraw">Вывод</button>
+    <button type="button" data-tab="history">История</button>
+  </nav>
+
+  <section id="tab-games" class="tab-content">
     <div class="grid">
-      <form id="loginForm">
-        <h2>Вход</h2>
-        <label for="loginName">Логин</label>
-        <input id="loginName" name="username" autocomplete="username" required maxlength="24">
-        <label for="loginPassword">Пароль</label>
-        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
-        <div class="actions"><button type="submit">Войти</button></div>
-      </form>
-      <form id="registerForm">
-        <h2>Регистрация</h2>
-        <label for="registerName">Логин</label>
-        <input id="registerName" name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" required>
-        <label for="registerPassword">Пароль (от 8 символов)</label>
-        <input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
-        <div class="actions"><button type="submit">Создать аккаунт</button></div>
-      </form>
-    </div>
-    <div class="admin-section">
-      <details>
-        <summary>Вход администратора</summary>
-        <form id="adminLoginForm">
-          <label for="adminName">Логин администратора</label>
-          <input id="adminName" name="username" autocomplete="username" required>
-          <label for="adminPassword">Пароль администратора</label>
-          <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
-          <div class="actions"><button type="submit" class="blue">Войти в админ-панель</button></div>
-        </form>
-      </details>
-    </div>
-  </section>
-
-  <section id="appSection" class="hidden">
-    <div class="card">
-      <div class="muted">Ваш аккаунт</div>
-      <h2 id="welcomeName">Пользователь</h2>
-      <div class="balance" style="font-size:30px" id="mainBalance">0 UZS</div>
-      <div class="muted">Виртуальный баланс</div>
-    </div>
-
-    <nav class="tabs" aria-label="Разделы">
-      <button type="button" class="active" data-tab="games">Игры</button>
-      <button type="button" data-tab="topup">Пополнение</button>
-      <button type="button" data-tab="withdraw">Вывод</button>
-      <button type="button" data-tab="history">История</button>
-    </nav>
-
-    <section id="tab-games" class="tab-content">
-      <div class="grid">
-        <article class="card game-card" id="aviatorCard">
-          <div class="game-heading">
-            <h2>✈️ Aviator</h2>
-            <button type="button" class="expand-button" data-expand="aviatorCard">⛶ На весь экран</button>
-          </div>
-          <div class="game-stage aviator-stage" id="aviatorStage">
-            <div class="aviator-trail"></div>
-            <div class="plane" id="aviatorPlane">✈️</div>
-            <div class="multiplier" id="aviatorMultiplier">1.00x</div>
-            <div id="aviatorStatus" class="muted">Сделай ставку и начни полёт</div>
-          </div>
-          <label for="aviatorBet">Ставка (UZS)</label>
-          <input id="aviatorBet" type="number" min="1000" step="1000" value="1000">
-          <div class="actions">
-            <button id="aviatorStart" type="button">Начать полёт</button>
-            <button id="aviatorCashout" type="button" class="blue" disabled>Забрать выигрыш</button>
-          </div>
-        </article>
-
-        <article class="card game-card" id="appleCard">
-          <div class="game-heading">
-            <h2>🍎 Apple of Fortune</h2>
-            <button type="button" class="expand-button" data-expand="appleCard">⛶ На весь экран</button>
-          </div>
-          <p class="muted">Выбирай ячейку в каждом ряду. Одна из четырёх безопасна.</p>
-          <div id="appleGrid" class="apple-grid"></div>
-          <div id="appleStatus" class="notice">Сделай ставку, чтобы начать.</div>
-          <label for="appleBet">Ставка (UZS)</label>
-          <input id="appleBet" type="number" min="1000" step="1000" value="1000">
-          <div class="actions">
-            <button id="appleStart" type="button">Начать</button>
-            <button id="appleCashout" type="button" class="blue" disabled>Забрать выигрыш</button>
-          </div>
-        </article>
-
-        <article class="card game-card" id="blackjackCard">
-          <div class="game-heading">
-            <h2>🃏 Blackjack</h2>
-            <button type="button" class="expand-button" data-expand="blackjackCard">⛶ На весь экран</button>
-          </div>
-          <div class="notice">Карты дилера</div>
-          <div id="dealerCards" class="cards"></div>
-          <div class="notice">Твои карты</div>
-          <div id="playerCards" class="cards"></div>
-          <div id="blackjackStatus" class="notice">Сделай ставку, чтобы начать.</div>
-          <label for="blackjackBet">Ставка (UZS)</label>
-          <input id="blackjackBet" type="number" min="1000" step="1000" value="1000">
-          <div class="actions">
-            <button id="blackjackStart" type="button">Раздать</button>
-            <button id="blackjackHit" type="button" class="blue" disabled>Взять карту</button>
-            <button id="blackjackStand" type="button" class="secondary" disabled>Остановиться</button>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section id="tab-topup" class="tab-content hidden">
-      <div class="card">
-        <h2>💳 Пополнение баланса</h2>
-        <p class="muted">Перевод проверяется администратором вручную. Не отправляй перевод, пока не проверишь реквизиты.</p>
-        <div class="notice">
-          <strong>Получатель: Xakimova Sh.</strong><br>
-          Банк/система: NBU HUMO<br>
-          <div style="font-size:20px;font-weight:800;margin-top:8px">9860 1266 3574 3415</div>
-          <button id="copyCard" class="secondary" type="button">Показать номер для копирования</button>
+      <article class="card game-card" id="aviatorCard">
+        <div class="game-heading">
+          <h2>✈️ Aviator</h2>
+          <button type="button" class="expand-button" data-expand="aviatorCard">⛶ На весь экран</button>
         </div>
-        <form id="topupForm">
-          <label for="topupAmount">Сумма пополнения (UZS)</label>
-          <input id="topupAmount" type="number" min="1000" max="10000000" step="1000" required>
-          <label for="receiptFile">Фотография чека (JPG, PNG или WEBP; до 5 МБ)</label>
-          <input id="receiptFile" type="file" accept="image/jpeg,image/png,image/webp" required>
-          <div id="receiptPreview" class="hidden" style="margin-top:12px">
-            <img id="receiptImage" alt="Предпросмотр чека" style="width:100%;max-width:300px;border-radius:12px">
-          </div>
-          <div class="actions"><button type="submit">Отправить заявку</button></div>
-        </form>
-      </div>
-      <div class="card">
-        <h2>Мои заявки на пополнение</h2>
-        <div id="myTopups" class="muted">Загрузка…</div>
-      </div>
-    </section>
+        <div class="game-stage aviator-stage" id="aviatorStage">
+          <div class="aviator-trail"></div>
+          <div class="plane" id="aviatorPlane">✈️</div>
+          <div class="multiplier" id="aviatorMultiplier">1.00x</div>
+          <div id="aviatorStatus" class="muted">Сделай ставку и начни полёт</div>
+        </div>
+        <label for="aviatorBet">Ставка (UZS)</label>
+        <input id="aviatorBet" type="number" min="1000" step="1000" value="1000">
+        <div class="actions">
+          <button id="aviatorStart" type="button">Начать полёт</button>
+          <button id="aviatorCashout" type="button" class="blue" disabled>Забрать выигрыш</button>
+        </div>
+      </article>
 
-    <section id="tab-withdraw" class="tab-content hidden">
-      <div class="card">
-        <h2>💸 Заявка на вывод</h2>
-        <p class="muted">Заявка рассматривается вручную. Одобрение заявки само по себе не означает, что банковский перевод выполнен.</p>
-        <form id="withdrawForm">
-          <label for="withdrawAmount">Сумма (UZS)</label>
-          <input id="withdrawAmount" type="number" min="1000" max="10000000" step="1000" required>
-          <label for="withdrawRecipient">Имя получателя</label>
-          <input id="withdrawRecipient" maxlength="100" required>
-          <label for="withdrawDetails">Платёжные реквизиты</label>
-          <textarea id="withdrawDetails" minlength="5" maxlength="200" rows="3" required></textarea>
-          <div class="actions"><button type="submit">Создать заявку</button></div>
-        </form>
-      </div>
-      <div class="card">
-        <h2>Мои заявки на вывод</h2>
-        <div id="myWithdrawals" class="muted">Загрузка…</div>
-      </div>
-    </section>
+      <article class="card game-card" id="appleCard">
+        <div class="game-heading">
+          <h2>🍎 Apple of Fortune</h2>
+          <button type="button" class="expand-button" data-expand="appleCard">⛶ На весь экран</button>
+        </div>
+        <p class="muted">Выбирай ячейку в каждом ряду. Одна из четырёх безопасна.</p>
+        <div id="appleGrid" class="apple-grid"></div>
+        <div id="appleStatus" class="notice">Сделай ставку, чтобы начать.</div>
+        <label for="appleBet">Ставка (UZS)</label>
+        <input id="appleBet" type="number" min="1000" step="1000" value="1000">
+        <div class="actions">
+          <button id="appleStart" type="button">Начать</button>
+          <button id="appleCashout" type="button" class="blue" disabled>Забрать выигрыш</button>
+        </div>
+      </article>
 
-    <section id="tab-history" class="tab-content hidden">
-      <div class="card">
-        <h2>История операций</h2>
-        <div id="historyList" class="muted">Загрузка…</div>
-      </div>
-    </section>
-  </section>
-
-  <section id="adminSection" class="hidden">
-    <div class="card">
-      <h2>🛡️ Панель администратора</h2>
-      <p class="muted">Проверяй чек и данные заявки перед одобрением. Обрабатывай каждую заявку только один раз.</p>
-      <div class="actions">
-        <button id="refreshAdmin" type="button">Обновить данные</button>
-        <button id="adminLogout" type="button" class="secondary">Выйти из админ-панели</button>
-      </div>
-      <div class="admin-section">
-        <h3>Пополнения</h3>
-        <div id="adminTopups">Загрузка…</div>
-      </div>
-      <div class="admin-section">
-        <h3>Вывод средств</h3>
-        <div id="adminWithdrawals">Загрузка…</div>
-      </div>
-      <div class="admin-section">
-        <h3>Пользователи</h3>
-        <div id="adminUsers">Загрузка…</div>
-      </div>
+      <article class="card game-card" id="blackjackCard">
+        <div class="game-heading">
+          <h2>🃏 Blackjack</h2>
+          <button type="button" class="expand-button" data-expand="blackjackCard">⛶ На весь экран</button>
+        </div>
+        <div class="notice">Карты дилера</div>
+        <div id="dealerCards" class="cards"></div>
+        <div class="notice">Твои карты</div>
+        <div id="playerCards" class="cards"></div>
+        <div id="blackjackStatus" class="notice">Сделай ставку, чтобы начать.</div>
+        <label for="blackjackBet">Ставка (UZS)</label>
+        <input id="blackjackBet" type="number" min="1000" step="1000" value="1000">
+        <div class="actions">
+          <button id="blackjackStart" type="button">Раздать</button>
+          <button id="blackjackHit" type="button" class="blue" disabled>Взять карту</button>
+          <button id="blackjackStand" type="button" class="secondary" disabled>Остановиться</button>
+        </div>
+      </article>
     </div>
   </section>
-</main>
 
+  <section id="tab-topup" class="tab-content hidden">
+    <div class="card">
+      <h2>💳 Пополнение баланса</h2>
+      <p class="muted">Перевод проверяется администратором вручную. Не отправляй перевод, пока не проверишь реквизиты.</p>
+      <div class="notice">
+        <strong>Получатель: Xakimova Sh.</strong><br>
+        Банк/система: NBU HUMO<br>
+        <div style="font-size:20px;font-weight:800;margin-top:8px">9860 1266 3574 3415</div>
+        <button id="copyCard" class="secondary" type="button">Показать номер для копирования</button>
+      </div>
+      <form id="topupForm">
+        <label for="topupAmount">Сумма пополнения (UZS)</label>
+        <input id="topupAmount" type="number" min="1000" max="10000000" step="1000" required>
+        <label for="receiptFile">Фотография чека (JPG, PNG или WEBP; до 5 МБ)</label>
+        <input id="receiptFile" type="file" accept="image/jpeg,image/png,image/webp" required>
+        <div id="receiptPreview" class="hidden" style="margin-top:12px">
+          <img id="receiptImage" alt="Предпросмотр чека" style="width:100%;max-width:300px;border-radius:12px">
+        </div>
+        <div class="actions"><button type="submit">Отправить заявку</button></div>
+      </form>
+    </div>
+    <div class="card"><h2>Мои заявки на пополнение</h2><div id="myTopups" class="muted">Загрузка…</div></div>
+  </section>
+
+  <section id="tab-withdraw" class="tab-content hidden">
+    <div class="card">
+      <h2>💸 Заявка на вывод</h2>
+      <p class="muted">Заявка рассматривается вручную. Одобрение заявки само по себе не означает, что банковский перевод выполнен.</p>
+      <form id="withdrawForm">
+        <label for="withdrawAmount">Сумма (UZS)</label>
+        <input id="withdrawAmount" type="number" min="1000" max="10000000" step="1000" required>
+        <label for="withdrawRecipient">Имя получателя</label>
+        <input id="withdrawRecipient" maxlength="100" required>
+        <label for="withdrawDetails">Платёжные реквизиты</label>
+        <textarea id="withdrawDetails" minlength="5" maxlength="200" rows="3" required></textarea>
+        <div class="actions"><button type="submit">Создать заявку</button></div>
+      </form>
+    </div>
+    <div class="card"><h2>Мои заявки на вывод</h2><div id="myWithdrawals" class="muted">Загрузка…</div></div>
+  </section>
+
+  <section id="tab-history" class="tab-content hidden">
+    <div class="card"><h2>История операций</h2><div id="historyList" class="muted">Загрузка…</div></div>
+  </section>
+</section>
+
+<section id="adminSection" class="hidden">
+  <div class="card">
+    <h2>🛡️ Панель администратора</h2>
+    <p class="muted">Проверяй чек и данные заявки перед одобрением. Обрабатывай каждую заявку только один раз.</p>
+    <div class="actions">
+      <button id="refreshAdmin" type="button">Обновить данные</button>
+      <button id="adminLogout" type="button" class="secondary">Выйти из админ-панели</button>
+    </div>
+    <div class="admin-section"><h3>Пополнения</h3><div id="adminTopups">Загрузка…</div></div>
+    <div class="admin-section"><h3>Вывод средств</h3><div id="adminWithdrawals">Загрузка…</div></div>
+    <div class="admin-section"><h3>Пользователи</h3><div id="adminUsers">Загрузка…</div></div>
+  </div>
+</section>
+</main>
 <footer>DEPOSIT 2.0 · Демонстрационный игровой баланс</footer>
 
 <script>
 'use strict';
 
-const $ = id => document.getElementById(id);
-const state = {
-  user: null,
-  admin: false,
-  aviatorTimer: null,
-  aviatorBusy: false,
-  appleActive: false,
-  appleRow: 0,
-  blackjackActive: false,
-  receiptData: null,
-  receiptUrl: null,
-  expandedGame: null
+const $=id=>document.getElementById(id);
+const state={
+  user:null,admin:false,aviatorTimer:null,aviatorBusy:false,
+  appleActive:false,appleRow:0,blackjackActive:false,
+  receiptData:null,expandedGame:null
 };
 
 /* Полноэкранный режим отдельной игры */
-function expandGame(id) {
-  const card = $(id);
-  if (!card || !card.classList.contains('game-card')) return;
-  if (state.expandedGame && state.expandedGame !== card) {
+function expandGame(id){
+  const card=$(id);
+  if(!card||!card.classList.contains('game-card'))return;
+  if(state.expandedGame&&state.expandedGame!==card){
     state.expandedGame.classList.remove('expanded');
   }
-  state.expandedGame = card;
+  state.expandedGame=card;
   card.classList.add('expanded');
   document.body.classList.add('game-open');
-
-  const button = card.querySelector('[data-expand]');
-  if (button) {
-    button.textContent = '✕ Закрыть';
-    button.classList.add('close-game');
-  }
+  const button=card.querySelector('[data-expand]');
+  if(button){button.textContent='✕ Закрыть';button.classList.add('close-game')}
 }
-function closeGame() {
-  if (!state.expandedGame) return;
-  const card = state.expandedGame;
+function closeGame(){
+  if(!state.expandedGame)return;
+  const card=state.expandedGame;
   card.classList.remove('expanded');
-  const button = card.querySelector('[data-expand]');
-  if (button) {
-    button.textContent = '⛶ На весь экран';
-    button.classList.remove('close-game');
-  }
-  state.expandedGame = null;
+  const button=card.querySelector('[data-expand]');
+  if(button){button.textContent='⛶ На весь экран';button.classList.remove('close-game')}
+  state.expandedGame=null;
   document.body.classList.remove('game-open');
 }
-document.querySelectorAll('[data-expand]').forEach(button => {
-  button.addEventListener('click', () => {
-    const card = $(button.dataset.expand);
-    if (card && card.classList.contains('expanded')) closeGame();
+document.querySelectorAll('[data-expand]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const card=$(button.dataset.expand);
+    if(card&&card.classList.contains('expanded'))closeGame();
     else expandGame(button.dataset.expand);
   });
 });
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') closeGame();
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape')closeGame();
 });
 
-function showMessage(text, isError = false) {
-  const box = $('message');
-  box.textContent = text;
+function showMessage(text,isError=false){
+  const box=$('message');
+  box.textContent=text;
   box.classList.remove('hidden');
-  box.style.border = isError ? '1px solid var(--red)' : '1px solid var(--green)';
-  if (!state.expandedGame) window.scrollTo({ top: 0, behavior: 'smooth' });
+  box.style.border=isError?'1px solid var(--red)':'1px solid var(--green)';
+  if(!state.expandedGame)window.scrollTo({top:0,behavior:'smooth'});
 }
-function hideMessage() { $('message').classList.add('hidden'); }
+function hideMessage(){$('message').classList.add('hidden')}
 
-async function api(url, options = {}) {
-  const config = {
-    credentials: 'same-origin',
-    ...options,
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(options.headers || {})
+async function api(url,options={}){
+  const config={
+    credentials:'same-origin',...options,
+    headers:{
+      ...(options.body?{'Content-Type':'application/json'}:{}),
+      ...(options.headers||{})
     }
   };
   let response;
-  try {
-    response = await fetch(url, config);
-  } catch {
-    throw new Error('Не удалось соединиться с сервером. Проверь интернет и попробуй снова.');
-  }
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.ok === false) {
-    throw new Error(data.error || `Ошибка сервера (${response.status}).`);
-  }
+  try{response=await fetch(url,config)}
+  catch{throw new Error('Не удалось соединиться с сервером. Проверь интернет и попробуй снова.')}
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data.ok===false)throw new Error(data.error||`Ошибка сервера (${response.status}).`);
   return data;
 }
-function post(url, data = {}) {
-  return api(url, { method: 'POST', body: JSON.stringify(data) });
-}
-function money(value) {
-  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
-    .format(Number(value) || 0) + ' UZS';
-}
-function safeText(value) { return String(value ?? ''); }
-function element(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
+function post(url,data={}){return api(url,{method:'POST',body:JSON.stringify(data)})}
+function money(value){return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(Number(value)||0)+' UZS'}
+function safeText(value){return String(value??'')}
+function element(tag,className,text){
+  const node=document.createElement(tag);
+  if(className)node.className=className;
+  if(text!==undefined)node.textContent=text;
   return node;
 }
-function updateBalance(balance) {
-  if (state.user) state.user.balance = Number(balance) || 0;
-  const formatted = money(balance);
-  $('headerBalance').textContent = 'Баланс: ' + formatted;
-  $('mainBalance').textContent = formatted;
+function updateBalance(balance){
+  if(state.user)state.user.balance=Number(balance)||0;
+  const formatted=money(balance);
+  $('headerBalance').textContent='Баланс: '+formatted;
+  $('mainBalance').textContent=formatted;
 }
-function renderAuth() {
-  $('authSection').classList.toggle('hidden', Boolean(state.user || state.admin));
-  $('appSection').classList.toggle('hidden', !state.user || state.admin);
-  $('adminSection').classList.toggle('hidden', !state.admin);
-  $('logoutButton').classList.toggle('hidden', !state.user);
-  $('headerBalance').classList.toggle('hidden', !state.user);
-  $('welcomeName').textContent = state.user ? state.user.username : '';
-  if (state.user) updateBalance(state.user.balance);
-  else if (!state.admin) $('headerBalance').textContent = 'DEPOSIT 2.0';
+function renderAuth(){
+  $('authSection').classList.toggle('hidden',Boolean(state.user||state.admin));
+  $('appSection').classList.toggle('hidden',!state.user||state.admin);
+  $('adminSection').classList.toggle('hidden',!state.admin);
+  $('logoutButton').classList.toggle('hidden',!state.user);
+  $('headerBalance').classList.toggle('hidden',!state.user);
+  $('welcomeName').textContent=state.user?state.user.username:'';
+  if(state.user)updateBalance(state.user.balance);
+  else if(!state.admin)$('headerBalance').textContent='DEPOSIT 2.0';
 }
-async function loadMe() {
-  try {
-    const data = await api('/api/me');
-    if (data.user) {
-      state.user = data.user;
-      state.admin = false;
-      renderAuth();
-      await refreshUserData();
-      return;
+async function loadMe(){
+  try{
+    const data=await api('/api/me');
+    if(data.user){
+      state.user=data.user;state.admin=false;renderAuth();
+      await refreshUserData();return;
     }
-  } catch {}
-  try {
-    const data = await api('/api/admin/me');
-    if (data.isAdmin) {
-      state.admin = true;
-      state.user = null;
-      renderAuth();
-      await refreshAdmin();
-      return;
+  }catch{}
+  try{
+    const data=await api('/api/admin/me');
+    if(data.isAdmin){
+      state.admin=true;state.user=null;renderAuth();
+      await refreshAdmin();return;
     }
-  } catch {}
+  }catch{}
   renderAuth();
 }
 
-$('loginForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  hideMessage();
-  try {
-    const data = await post('/api/login', {
-      username: $('loginName').value.trim(),
-      password: $('loginPassword').value
+$('loginForm').addEventListener('submit',async event=>{
+  event.preventDefault();hideMessage();
+  try{
+    const data=await post('/api/login',{
+      username:$('loginName').value.trim(),password:$('loginPassword').value
     });
-    state.user = data.user;
-    state.admin = false;
-    renderAuth();
-    await refreshUserData();
-    showMessage('Вход выполнен.');
-    $('loginPassword').value = '';
-  } catch (error) { showMessage(error.message, true); }
+    state.user=data.user;state.admin=false;renderAuth();
+    await refreshUserData();showMessage('Вход выполнен.');
+    $('loginPassword').value='';
+  }catch(error){showMessage(error.message,true)}
 });
-$('registerForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  hideMessage();
-  try {
-    const data = await post('/api/register', {
-      username: $('registerName').value.trim(),
-      password: $('registerPassword').value
+$('registerForm').addEventListener('submit',async event=>{
+  event.preventDefault();hideMessage();
+  try{
+    const data=await post('/api/register',{
+      username:$('registerName').value.trim(),password:$('registerPassword').value
     });
-    state.user = data.user;
-    state.admin = false;
-    renderAuth();
-    await refreshUserData();
-    showMessage('Аккаунт создан.');
-    $('registerPassword').value = '';
-  } catch (error) { showMessage(error.message, true); }
+    state.user=data.user;state.admin=false;renderAuth();
+    await refreshUserData();showMessage('Аккаунт создан.');
+    $('registerPassword').value='';
+  }catch(error){showMessage(error.message,true)}
 });
-$('adminLoginForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  hideMessage();
-  try {
-    await post('/api/admin/login', {
-      username: $('adminName').value.trim(),
-      password: $('adminPassword').value
+$('adminLoginForm').addEventListener('submit',async event=>{
+  event.preventDefault();hideMessage();
+  try{
+    await post('/api/admin/login',{
+      username:$('adminName').value.trim(),password:$('adminPassword').value
     });
-    state.user = null;
-    state.admin = true;
-    renderAuth();
-    await refreshAdmin();
-    showMessage('Вход администратора выполнен.');
-    $('adminPassword').value = '';
-  } catch (error) { showMessage(error.message, true); }
+    state.user=null;state.admin=true;renderAuth();
+    await refreshAdmin();showMessage('Вход администратора выполнен.');
+    $('adminPassword').value='';
+  }catch(error){showMessage(error.message,true)}
 });
-$('logoutButton').addEventListener('click', logout);
-$('adminLogout').addEventListener('click', logout);
+$('logoutButton').addEventListener('click',logout);
+$('adminLogout').addEventListener('click',logout);
 
-async function logout() {
-  try { await post('/api/logout'); } catch {}
-  stopAviatorPolling();
-  closeGame();
-  state.user = null;
-  state.admin = false;
-  state.appleActive = false;
-  state.blackjackActive = false;
-  renderAuth();
-  showMessage('Вы вышли из аккаунта.');
+async function logout(){
+  try{await post('/api/logout')}catch{}
+  stopAviatorPolling();closeGame();
+  state.user=null;state.admin=false;state.appleActive=false;state.blackjackActive=false;
+  renderAuth();showMessage('Вы вышли из аккаунта.');
 }
-document.querySelectorAll('[data-tab]').forEach(button => {
-  button.addEventListener('click', () => {
+document.querySelectorAll('[data-tab]').forEach(button=>{
+  button.addEventListener('click',()=>{
     closeGame();
-    document.querySelectorAll('[data-tab]').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('[data-tab]').forEach(item=>item.classList.remove('active'));
     button.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(section => section.classList.add('hidden'));
-    $('tab-' + button.dataset.tab).classList.remove('hidden');
+    document.querySelectorAll('.tab-content').forEach(section=>section.classList.add('hidden'));
+    $('tab-'+button.dataset.tab).classList.remove('hidden');
   });
 });
 
-async function refreshUserData() {
-  if (!state.user) return;
-  try {
-    const me = await api('/api/me');
-    if (me.user) {
-      state.user = me.user;
-      updateBalance(me.user.balance);
-    }
-  } catch {}
-  await Promise.allSettled([loadHistory(), loadMyTopups(), loadMyWithdrawals()]);
+async function refreshUserData(){
+  if(!state.user)return;
+  try{
+    const me=await api('/api/me');
+    if(me.user){state.user=me.user;updateBalance(me.user.balance)}
+  }catch{}
+  await Promise.allSettled([loadHistory(),loadMyTopups(),loadMyWithdrawals()]);
 }
-async function loadHistory() {
-  const data = await api('/api/history');
-  const root = $('historyList');
-  root.replaceChildren();
-  if (!data.history || !data.history.length) {
-    root.textContent = 'Операций пока нет.';
-    return;
-  }
-  data.history.forEach(item => {
-    const row = element('div', 'list-item');
+async function loadHistory(){
+  const data=await api('/api/history');
+  const root=$('historyList');root.replaceChildren();
+  if(!data.history||!data.history.length){root.textContent='Операций пока нет.';return}
+  data.history.forEach(item=>{
+    const row=element('div','list-item');
     row.append(
-      element('strong', '', safeText(item.description)),
-      element('div', 'muted', new Date(item.createdAt).toLocaleString('ru-RU')),
-      element('div', item.amount > 0 ? 'balance' : '', money(item.amount))
+      element('strong','',safeText(item.description)),
+      element('div','muted',new Date(item.createdAt).toLocaleString('ru-RU')),
+      element('div',item.amount>0?'balance':'',money(item.amount))
     );
     root.append(row);
   });
 }
-function statusLabel(status) {
-  const labels = { pending: 'Ожидает проверки', approved: 'Одобрено', rejected: 'Отклонено' };
-  return labels[status] || status;
+function statusLabel(status){
+  const labels={pending:'Ожидает проверки',approved:'Одобрено',rejected:'Отклонено'};
+  return labels[status]||status;
 }
-function renderRequests(root, requests, type) {
+function renderRequests(root,requests,type){
   root.replaceChildren();
-  if (!requests || !requests.length) {
-    root.textContent = 'Заявок пока нет.';
-    return;
-  }
-  requests.forEach(item => {
-    const row = element('div', 'list-item');
+  if(!requests||!requests.length){root.textContent='Заявок пока нет.';return}
+  requests.forEach(item=>{
+    const row=element('div','list-item');
     row.append(
-      element('strong', '', `Заявка №${item.id} · ${money(item.amount)}`),
-      element('div', 'muted', new Date(item.createdAt).toLocaleString('ru-RU')),
-      element('span', `status ${item.status}`, statusLabel(item.status))
+      element('strong','',`Заявка №${item.id} · ${money(item.amount)}`),
+      element('div','muted',new Date(item.createdAt).toLocaleString('ru-RU')),
+      element('span',`status ${item.status}`,statusLabel(item.status))
     );
-    if (item.adminComment) row.append(element('p', 'muted', 'Комментарий: ' + item.adminComment));
-    if (type === 'withdrawal' && item.recipient) {
-      row.append(element('p', 'muted', 'Получатель: ' + item.recipient));
-    }
+    if(item.adminComment)row.append(element('p','muted','Комментарий: '+item.adminComment));
+    if(type==='withdrawal'&&item.recipient)row.append(element('p','muted','Получатель: '+item.recipient));
     root.append(row);
   });
 }
-async function loadMyTopups() {
-  const data = await api('/api/my-topup-requests');
-  renderRequests($('myTopups'), data.requests, 'topup');
+async function loadMyTopups(){
+  const data=await api('/api/my-topup-requests');
+  renderRequests($('myTopups'),data.requests,'topup');
 }
-async function loadMyWithdrawals() {
-  const data = await api('/api/my-withdrawal-requests');
-  renderRequests($('myWithdrawals'), data.requests, 'withdrawal');
+async function loadMyWithdrawals(){
+  const data=await api('/api/my-withdrawal-requests');
+  renderRequests($('myWithdrawals'),data.requests,'withdrawal');
 }
-$('copyCard').addEventListener('click', () => {
+$('copyCard').addEventListener('click',()=>{
   showMessage('Номер карты: 9860 1266 3574 3415. Скопируй его вручную.');
 });
-$('receiptFile').addEventListener('change', async event => {
-  const file = event.target.files && event.target.files[0];
-  state.receiptData = null;
-  if (!file) {
-    $('receiptPreview').classList.add('hidden');
-    return;
+$('receiptFile').addEventListener('change',async event=>{
+  const file=event.target.files&&event.target.files[0];
+  state.receiptData=null;
+  if(!file){$('receiptPreview').classList.add('hidden');return}
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
+    event.target.value='';showMessage('Выбери файл JPG, PNG или WEBP.',true);return;
   }
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    event.target.value = '';
-    showMessage('Выбери файл JPG, PNG или WEBP.', true);
-    return;
+  if(file.size>5*1024*1024){
+    event.target.value='';showMessage('Размер файла должен быть не больше 5 МБ.',true);return;
   }
-  if (file.size > 5 * 1024 * 1024) {
-    event.target.value = '';
-    showMessage('Размер файла должен быть не больше 5 МБ.', true);
-    return;
-  }
-  try {
-    state.receiptData = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('Не удалось прочитать файл.'));
+  try{
+    state.receiptData=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(new Error('Не удалось прочитать файл.'));
       reader.readAsDataURL(file);
     });
-    $('receiptImage').src = state.receiptData;
+    $('receiptImage').src=state.receiptData;
     $('receiptPreview').classList.remove('hidden');
-  } catch (error) { showMessage(error.message, true); }
+  }catch(error){showMessage(error.message,true)}
 });
-$('topupForm').addEventListener('submit', async event => {
+$('topupForm').addEventListener('submit',async event=>{
   event.preventDefault();
-  if (!state.receiptData) {
-    showMessage('Сначала выбери фотографию чека.', true);
-    return;
-  }
-  const amount = Number($('topupAmount').value);
-  try {
-    await post('/api/topup-requests', { amount, receiptData: state.receiptData });
-    $('topupForm').reset();
-    state.receiptData = null;
+  if(!state.receiptData){showMessage('Сначала выбери фотографию чека.',true);return}
+  const amount=Number($('topupAmount').value);
+  try{
+    await post('/api/topup-requests',{amount,receiptData:state.receiptData});
+    $('topupForm').reset();state.receiptData=null;
     $('receiptPreview').classList.add('hidden');
     await loadMyTopups();
     showMessage('Заявка отправлена. Баланс изменится после одобрения администратором.');
-  } catch (error) { showMessage(error.message, true); }
+  }catch(error){showMessage(error.message,true)}
 });
-$('withdrawForm').addEventListener('submit', async event => {
+$('withdrawForm').addEventListener('submit',async event=>{
   event.preventDefault();
-  try {
-    const data = await post('/api/withdrawal-requests', {
-      amount: Number($('withdrawAmount').value),
-      recipient: $('withdrawRecipient').value.trim(),
-      paymentDetails: $('withdrawDetails').value.trim()
+  try{
+    const data=await post('/api/withdrawal-requests',{
+      amount:Number($('withdrawAmount').value),
+      recipient:$('withdrawRecipient').value.trim(),
+      paymentDetails:$('withdrawDetails').value.trim()
     });
-    updateBalance(data.balance);
-    $('withdrawForm').reset();
-    await loadMyWithdrawals();
-    await loadHistory();
+    updateBalance(data.balance);$('withdrawForm').reset();
+    await loadMyWithdrawals();await loadHistory();
     showMessage('Заявка создана. Сумма зарезервирована до решения администратора.');
-  } catch (error) { showMessage(error.message, true); }
+  }catch(error){showMessage(error.message,true)}
 });
-function validateBet(input) {
-  const value = Number($(input).value);
-  if (!Number.isSafeInteger(value) || value < 1000 ||
-      value > 1000000 || value % 1000 !== 0) {
+function validateBet(input){
+  const value=Number($(input).value);
+  if(!Number.isSafeInteger(value)||value<1000||value>1000000||value%1000!==0)
     throw new Error('Ставка должна быть от 1 000 до 1 000 000 UZS и кратна 1 000.');
-  }
   return value;
 }
 
 /* Aviator */
-function stopAviatorPolling() {
-  if (state.aviatorTimer) clearTimeout(state.aviatorTimer);
-  state.aviatorTimer = null;
-  state.aviatorBusy = false;
+function stopAviatorPolling(){
+  if(state.aviatorTimer)clearTimeout(state.aviatorTimer);
+  state.aviatorTimer=null;state.aviatorBusy=false;
 }
-function aviatorAnimation(mode) {
-  const stage = $('aviatorStage');
-  stage.classList.remove('flying', 'crashed', 'won');
-  if (mode) stage.classList.add(mode);
+function aviatorAnimation(mode){
+  const stage=$('aviatorStage');
+  stage.classList.remove('flying','crashed','won');
+  if(mode)stage.classList.add(mode);
 }
-function scheduleAviatorPoll() {
-  if (!state.user || state.aviatorBusy) return;
-  state.aviatorTimer = setTimeout(async () => {
-    if (!state.user || state.aviatorBusy) return;
-    state.aviatorBusy = true;
-    let shouldContinue = false;
-    try {
-      const data = await api('/api/games/aviator/state');
-      if (!data.active) {
+function scheduleAviatorPoll(){
+  if(!state.user||state.aviatorBusy)return;
+  state.aviatorTimer=setTimeout(async()=>{
+    if(!state.user||state.aviatorBusy)return;
+    state.aviatorBusy=true;
+    let shouldContinue=false;
+    try{
+      const data=await api('/api/games/aviator/state');
+      if(!data.active){
         stopAviatorPolling();
-        aviatorAnimation(data.status === 'crashed' ? 'crashed' : '');
-        $('aviatorCashout').disabled = true;
-        $('aviatorStart').disabled = false;
-        if (data.status === 'crashed') {
-          $('aviatorMultiplier').textContent = Number(data.crashMultiplier || 1).toFixed(2) + 'x';
-          $('aviatorStatus').textContent = 'Самолёт улетел!';
-        } else {
-          $('aviatorStatus').textContent = 'Полёт завершён.';
-        }
-        if (data.balance !== undefined) updateBalance(data.balance);
-        await loadHistory();
-        return;
+        aviatorAnimation(data.status==='crashed'?'crashed':'');
+        $('aviatorCashout').disabled=true;$('aviatorStart').disabled=false;
+        if(data.status==='crashed'){
+          $('aviatorMultiplier').textContent=Number(data.crashMultiplier||1).toFixed(2)+'x';
+          $('aviatorStatus').textContent='Самолёт улетел!';
+        }else $('aviatorStatus').textContent='Полёт завершён.';
+        if(data.balance!==undefined)updateBalance(data.balance);
+        await loadHistory();return;
       }
-      $('aviatorMultiplier').textContent = Number(data.multiplier).toFixed(2) + 'x';
-      $('aviatorStatus').textContent = 'Самолёт в полёте';
-      if (data.balance !== undefined) updateBalance(data.balance);
-      shouldContinue = true;
-    } catch (error) {
-      $('aviatorStatus').textContent = error.message;
-      shouldContinue = !$('aviatorCashout').disabled;
-    } finally {
-      state.aviatorBusy = false;
-    }
-    if (shouldContinue && state.user && !$('aviatorCashout').disabled) scheduleAviatorPoll();
-  }, 350);
+      $('aviatorMultiplier').textContent=Number(data.multiplier).toFixed(2)+'x';
+      $('aviatorStatus').textContent='Самолёт в полёте';
+      if(data.balance!==undefined)updateBalance(data.balance);
+      shouldContinue=true;
+    }catch(error){
+      $('aviatorStatus').textContent=error.message;
+      shouldContinue=!$('aviatorCashout').disabled;
+    }finally{state.aviatorBusy=false}
+    if(shouldContinue&&state.user&&!$('aviatorCashout').disabled)scheduleAviatorPoll();
+  },350);
 }
-$('aviatorStart').addEventListener('click', async () => {
-  try {
-    const data = await post('/api/games/aviator/start', { bet: validateBet('aviatorBet') });
+$('aviatorStart').addEventListener('click',async()=>{
+  try{
+    const data=await post('/api/games/aviator/start',{bet:validateBet('aviatorBet')});
     updateBalance(data.balance);
-    $('aviatorStart').disabled = true;
-    $('aviatorCashout').disabled = false;
-    $('aviatorStatus').textContent = 'Полёт начался!';
-    $('aviatorMultiplier').textContent = '1.00x';
-    aviatorAnimation('flying');
-    stopAviatorPolling();
-    scheduleAviatorPoll();
+    $('aviatorStart').disabled=true;$('aviatorCashout').disabled=false;
+    $('aviatorStatus').textContent='Полёт начался!';
+    $('aviatorMultiplier').textContent='1.00x';
+    aviatorAnimation('flying');stopAviatorPolling();scheduleAviatorPoll();
     await loadHistory();
-  } catch (error) { showMessage(error.message, true); }
+  }catch(error){showMessage(error.message,true)}
 });
-$('aviatorCashout').addEventListener('click', async () => {
-  if (state.aviatorBusy) return;
-  stopAviatorPolling();
-  $('aviatorCashout').disabled = true;
-  try {
-    const data = await post('/api/games/aviator/cashout');
+$('aviatorCashout').addEventListener('click',async()=>{
+  if(state.aviatorBusy)return;
+  stopAviatorPolling();$('aviatorCashout').disabled=true;
+  try{
+    const data=await post('/api/games/aviator/cashout');
     updateBalance(data.balance);
-    $('aviatorMultiplier').textContent = Number(data.multiplier).toFixed(2) + 'x';
-    $('aviatorStatus').textContent = 'Выигрыш: ' + money(data.payout);
-    aviatorAnimation('won');
-    $('aviatorStart').disabled = false;
+    $('aviatorMultiplier').textContent=Number(data.multiplier).toFixed(2)+'x';
+    $('aviatorStatus').textContent='Выигрыш: '+money(data.payout);
+    aviatorAnimation('won');$('aviatorStart').disabled=false;
     await loadHistory();
-  } catch (error) {
-    $('aviatorStatus').textContent = error.message;
-    $('aviatorStart').disabled = false;
-    try {
-      const data = await api('/api/games/aviator/state');
-      if (data.active) {
-        $('aviatorCashout').disabled = false;
-        aviatorAnimation('flying');
-        scheduleAviatorPoll();
-      } else if (data.balance !== undefined) {
-        updateBalance(data.balance);
-      }
-    } catch {}
+  }catch(error){
+    $('aviatorStatus').textContent=error.message;$('aviatorStart').disabled=false;
+    try{
+      const data=await api('/api/games/aviator/state');
+      if(data.active){
+        $('aviatorCashout').disabled=false;aviatorAnimation('flying');scheduleAviatorPoll();
+      }else if(data.balance!==undefined)updateBalance(data.balance);
+    }catch{}
   }
 });
 
 /* Apple of Fortune */
-function renderAppleGrid() {
-  const grid = $('appleGrid');
-  grid.replaceChildren();
-  for (let row = 0; row < 5; row++) {
-    for (let col = 0; col < 4; col++) {
-      const button = element('button', 'apple-cell', '🍏');
-      button.type = 'button';
-      button.dataset.row = row;
-      button.dataset.col = col;
-      button.disabled = !state.appleActive || row !== state.appleRow;
-      if (state.appleActive && row === state.appleRow) button.classList.add('current-row');
-      button.addEventListener('click', () => pickApple(col, button));
+function renderAppleGrid(){
+  const grid=$('appleGrid');grid.replaceChildren();
+  for(let row=0;row<5;row++){
+    for(let col=0;col<4;col++){
+      const button=element('button','apple-cell','🍏');
+      button.type='button';button.dataset.row=row;button.dataset.col=col;
+      button.disabled=!state.appleActive||row!==state.appleRow;
+      if(state.appleActive&&row===state.appleRow)button.classList.add('current-row');
+      button.addEventListener('click',()=>pickApple(col,button));
       grid.append(button);
     }
   }
 }
-async function pickApple(column, clickedButton) {
-  if (!state.appleActive) return;
-  document.querySelectorAll('.apple-cell').forEach(button => { button.disabled = true; });
-  try {
-    const data = await post('/api/games/apple/pick', { column });
-    clickedButton.textContent = data.correct ? '🍎' : '💥';
+async function pickApple(column,clickedButton){
+  if(!state.appleActive)return;
+  document.querySelectorAll('.apple-cell').forEach(button=>button.disabled=true);
+  try{
+    const data=await post('/api/games/apple/pick',{column});
+    clickedButton.textContent=data.correct?'🍎':'💥';
     clickedButton.classList.remove('current-row');
-    clickedButton.classList.add(data.correct ? 'open' : 'bad');
-    if (!data.correct || data.finished) {
-      state.appleActive = false;
-      $('appleStatus').textContent = data.correct
-        ? 'Игра завершена.'
-        : 'Не повезло! Попробуй ещё раз.';
-      $('appleStatus').classList.remove('apple-status-win', 'apple-status-loss');
-      $('appleStatus').classList.add(data.correct ? 'apple-status-win' : 'apple-status-loss');
-      $('appleCashout').disabled = true;
-      $('appleStart').disabled = false;
-    } else {
-      state.appleRow = data.row;
-      $('appleStatus').textContent =
-        `Ряд ${data.row} из 5 · Потенциальная выплата: ${money(data.potentialPayout)}`;
-      $('appleStatus').classList.remove('apple-status-win', 'apple-status-loss');
-      $('appleCashout').disabled = false;
-      renderAppleGrid();
-      const previous = $('appleGrid').querySelector(
-        `[data-row="${data.row - 1}"][data-col="${column}"]`
-      );
-      if (previous) {
-        previous.textContent = '🍎';
-        previous.classList.add('open');
-        previous.disabled = true;
+    clickedButton.classList.add(data.correct?'open':'bad');
+    if(!data.correct||data.finished){
+      state.appleActive=false;
+      $('appleStatus').textContent=data.correct?'Игра завершена.':'Не повезло! Попробуй ещё раз.';
+      $('appleStatus').classList.remove('apple-status-win','apple-status-loss');
+      $('appleStatus').classList.add(data.correct?'apple-status-win':'apple-status-loss');
+      $('appleCashout').disabled=true;$('appleStart').disabled=false;
+    }else{
+      state.appleRow=data.row;
+      $('appleStatus').textContent=`Ряд ${data.row} из 5 · Потенциальная выплата: ${money(data.potentialPayout)}`;
+      $('appleStatus').classList.remove('apple-status-win','apple-status-loss');
+      $('appleCashout').disabled=false;renderAppleGrid();
+      const previous=$('appleGrid').querySelector(`[data-row="${data.row-1}"][data-col="${column}"]`);
+      if(previous){
+        previous.textContent='🍎';previous.classList.add('open');previous.disabled=true;
       }
     }
-    if (data.balance !== undefined) updateBalance(data.balance);
+    if(data.balance!==undefined)updateBalance(data.balance);
     await loadHistory();
-  } catch (error) {
-    showMessage(error.message, true);
-    document.querySelectorAll('.apple-cell').forEach(button => {
-      button.disabled = !state.appleActive || Number(button.dataset.row) !== state.appleRow;
+  }catch(error){
+    showMessage(error.message,true);
+    document.querySelectorAll('.apple-cell').forEach(button=>{
+      button.disabled=!state.appleActive||Number(button.dataset.row)!==state.appleRow;
     });
   }
 }
-$('appleStart').addEventListener('click', async () => {
-  try {
-    const data = await post('/api/games/apple/start', { bet: validateBet('appleBet') });
-    updateBalance(data.balance);
-    state.appleActive = true;
-    state.appleRow = 0;
-    $('appleStatus').textContent = 'Выбери безопасную ячейку.';
-    $('appleStatus').classList.remove('apple-status-win', 'apple-status-loss');
-    $('appleStart').disabled = true;
-    $('appleCashout').disabled = true;
-    renderAppleGrid();
-    await loadHistory();
-  } catch (error) { showMessage(error.message, true); }
+$('appleStart').addEventListener('click',async()=>{
+  try{
+    const data=await post('/api/games/apple/start',{bet:validateBet('appleBet')});
+    updateBalance(data.balance);state.appleActive=true;state.appleRow=0;
+    $('appleStatus').textContent='Выбери безопасную ячейку.';
+    $('appleStatus').classList.remove('apple-status-win','apple-status-loss');
+    $('appleStart').disabled=true;$('appleCashout').disabled=true;
+    renderAppleGrid();await loadHistory();
+  }catch(error){showMessage(error.message,true)}
 });
-$('appleCashout').addEventListener('click', async () => {
-  $('appleCashout').disabled = true;
-  try {
-    const data = await post('/api/games/apple/cashout');
-    state.appleActive = false;
-    updateBalance(data.balance);
-    $('appleStatus').textContent =
-      `Забрано: ${money(data.payout)} · Множитель ${data.multiplier}x`;
+$('appleCashout').addEventListener('click',async()=>{
+  $('appleCashout').disabled=true;
+  try{
+    const data=await post('/api/games/apple/cashout');
+    state.appleActive=false;updateBalance(data.balance);
+    $('appleStatus').textContent=`Забрано: ${money(data.payout)} · Множитель ${data.multiplier}x`;
     $('appleStatus').classList.remove('apple-status-loss');
     $('appleStatus').classList.add('apple-status-win');
-    $('appleStart').disabled = false;
-    renderAppleGrid();
-    await loadHistory();
-  } catch (error) {
-    showMessage(error.message, true);
-    $('appleCashout').disabled = false;
-  }
+    $('appleStart').disabled=false;renderAppleGrid();await loadHistory();
+  }catch(error){showMessage(error.message,true);$('appleCashout').disabled=false}
 });
 
 /* Blackjack */
-function cardLabel(card) {
-  if (!card) return '?';
-  if (card.hidden) return '🂠';
-  const ranks = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
-  const suits = ['♠', '♥', '♦', '♣'];
-  const rank = ranks[card.value] || card.value;
-  const suit = suits[card.suit] || '♠';
-  return String(rank) + suit;
+function cardLabel(card){
+  if(!card)return '?';
+  if(card.hidden)return '🂠';
+  const ranks={1:'A',11:'J',12:'Q',13:'K'};
+  const suits=['♠','♥','♦','♣'];
+  return String(ranks[card.value]||card.value)+(suits[card.suit]||'♠');
 }
-function renderCards(container, cards) {
+function renderCards(container,cards){
   container.replaceChildren();
-  (cards || []).forEach((card, index) => {
-    const node = element('div', 'playing-card', cardLabel(card));
-    node.style.animationDelay = `${Math.min(index, 8) * 0.08}s`;
-    if (card && [1, 2].includes(card.suit)) node.style.color = '#cf304c';
+  (cards||[]).forEach((card,index)=>{
+    const node=element('div','playing-card',cardLabel(card));
+    node.style.animationDelay=`${Math.min(index,8)*0.08}s`;
+    if(card&&[1,2].includes(card.suit))node.style.color='#cf304c';
     container.append(node);
   });
 }
-function finishBlackjackUI(data) {
-  state.blackjackActive = false;
-  renderCards($('playerCards'), data.player);
-  renderCards($('dealerCards'), data.dealer);
-  const resultLabels = { win: 'Победа!', loss: 'Проигрыш', draw: 'Ничья' };
-  $('blackjackStatus').textContent =
-    `${resultLabels[data.result] || data.result}. Выплата: ${money(data.payout)}. ` +
-    `Твои очки: ${data.playerScore}, дилер: ${data.dealerScore}.`;
-  $('blackjackStatus').classList.remove('blackjack-win', 'blackjack-loss', 'blackjack-draw');
-  $('blackjackStatus').classList.add(
-    data.result === 'win' ? 'blackjack-win' :
-    data.result === 'loss' ? 'blackjack-loss' : 'blackjack-draw'
-  );
-  $('blackjackStart').disabled = false;
-  $('blackjackHit').disabled = true;
-  $('blackjackStand').disabled = true;
-  if (data.balance !== undefined) updateBalance(data.balance);
+function finishBlackjackUI(data){
+  state.blackjackActive=false;
+  renderCards($('playerCards'),data.player);
+  renderCards($('dealerCards'),data.dealer);
+  const labels={win:'Победа!',loss:'Проигрыш',draw:'Ничья'};
+  $('blackjackStatus').textContent=`${labels[data.result]||data.result}. Выплата: ${money(data.payout)}. Твои очки: ${data.playerScore}, дилер: ${data.dealerScore}.`;
+  $('blackjackStatus').classList.remove('blackjack-win','blackjack-loss','blackjack-draw');
+  $('blackjackStatus').classList.add(data.result==='win'?'blackjack-win':data.result==='loss'?'blackjack-loss':'blackjack-draw');
+  $('blackjackStart').disabled=false;$('blackjackHit').disabled=true;$('blackjackStand').disabled=true;
+  if(data.balance!==undefined)updateBalance(data.balance);
 }
-$('blackjackStart').addEventListener('click', async () => {
-  try {
-    const data = await post('/api/games/blackjack/start', { bet: validateBet('blackjackBet') });
-    state.blackjackActive = true;
-    $('blackjackStatus').classList.remove('blackjack-win', 'blackjack-loss', 'blackjack-draw');
-    renderCards($('playerCards'), data.player);
-    renderCards($('dealerCards'), data.dealer);
-    $('blackjackStatus').textContent = `Твои очки: ${data.playerScore}`;
-    $('blackjackStart').disabled = true;
-    $('blackjackHit').disabled = false;
-    $('blackjackStand').disabled = false;
-    updateBalance(data.balance);
-    await loadHistory();
-  } catch (error) { showMessage(error.message, true); }
+$('blackjackStart').addEventListener('click',async()=>{
+  try{
+    const data=await post('/api/games/blackjack/start',{bet:validateBet('blackjackBet')});
+    state.blackjackActive=true;
+    $('blackjackStatus').classList.remove('blackjack-win','blackjack-loss','blackjack-draw');
+    renderCards($('playerCards'),data.player);renderCards($('dealerCards'),data.dealer);
+    $('blackjackStatus').textContent=`Твои очки: ${data.playerScore}`;
+    $('blackjackStart').disabled=true;$('blackjackHit').disabled=false;$('blackjackStand').disabled=false;
+    updateBalance(data.balance);await loadHistory();
+  }catch(error){showMessage(error.message,true)}
 });
-$('blackjackHit').addEventListener('click', async () => {
-  $('blackjackHit').disabled = true;
-  try {
-    const data = await post('/api/games/blackjack/hit');
-    if (data.finished) {
-      finishBlackjackUI(data);
-    } else {
-      renderCards($('playerCards'), data.player);
-      renderCards($('dealerCards'), data.dealer);
-      $('blackjackStatus').textContent = `Твои очки: ${data.playerScore}`;
-      $('blackjackHit').disabled = false;
-      updateBalance(data.balance);
+$('blackjackHit').addEventListener('click',async()=>{
+  $('blackjackHit').disabled=true;
+  try{
+    const data=await post('/api/games/blackjack/hit');
+    if(data.finished)finishBlackjackUI(data);
+    else{
+      renderCards($('playerCards'),data.player);renderCards($('dealerCards'),data.dealer);
+      $('blackjackStatus').textContent=`Твои очки: ${data.playerScore}`;
+      $('blackjackHit').disabled=false;updateBalance(data.balance);
     }
     await loadHistory();
-  } catch (error) {
-    showMessage(error.message, true);
-    $('blackjackHit').disabled = false;
-  }
+  }catch(error){showMessage(error.message,true);$('blackjackHit').disabled=false}
 });
-$('blackjackStand').addEventListener('click', async () => {
-  $('blackjackStand').disabled = true;
-  $('blackjackHit').disabled = true;
-  try {
-    const data = await post('/api/games/blackjack/stand');
-    finishBlackjackUI(data);
-    await loadHistory();
-  } catch (error) {
-    showMessage(error.message, true);
-    $('blackjackStand').disabled = false;
-    $('blackjackHit').disabled = false;
+$('blackjackStand').addEventListener('click',async()=>{
+  $('blackjackStand').disabled=true;$('blackjackHit').disabled=true;
+  try{
+    const data=await post('/api/games/blackjack/stand');
+    finishBlackjackUI(data);await loadHistory();
+  }catch(error){
+    showMessage(error.message,true);$('blackjackStand').disabled=false;$('blackjackHit').disabled=false;
   }
 });
 
 /* Админ-панель */
-async function refreshAdmin() {
-  if (!state.admin) return;
-  try {
-    const [topups, withdrawals, users] = await Promise.all([
+async function refreshAdmin(){
+  if(!state.admin)return;
+  try{
+    const [topups,withdrawals,users]=await Promise.all([
       api('/api/admin/topup-requests'),
       api('/api/admin/withdrawal-requests'),
       api('/api/admin/users')
     ]);
-    renderAdminTopups(topups.requests || []);
-    renderAdminWithdrawals(withdrawals.requests || []);
-    renderAdminUsers(users.users || []);
-  } catch (error) { showMessage(error.message, true); }
+    renderAdminTopups(topups.requests||[]);
+    renderAdminWithdrawals(withdrawals.requests||[]);
+    renderAdminUsers(users.users||[]);
+  }catch(error){showMessage(error.message,true)}
 }
-function adminActionButtons(row, item, type) {
-  if (item.status !== 'pending') return;
-  const actions = element('div', 'actions');
-  const approve = element('button', '', 'Одобрить');
-  const reject = element('button', 'danger', 'Отклонить');
-  approve.type = reject.type = 'button';
-  approve.addEventListener('click', () => processAdminRequest(type, item.id, 'approve'));
-  reject.addEventListener('click', () => processAdminRequest(type, item.id, 'reject'));
-  actions.append(approve, reject);
-  row.append(actions);
+function adminActionButtons(row,item,type){
+  if(item.status!=='pending')return;
+  const actions=element('div','actions');
+  const approve=element('button','','Одобрить');
+  const reject=element('button','danger','Отклонить');
+  approve.type=reject.type='button';
+  approve.addEventListener('click',()=>processAdminRequest(type,item.id,'approve'));
+  reject.addEventListener('click',()=>processAdminRequest(type,item.id,'reject'));
+  actions.append(approve,reject);row.append(actions);
 }
-function renderAdminTopups(requests) {
-  const root = $('adminTopups');
-  root.replaceChildren();
-  if (!requests.length) { root.textContent = 'Заявок на пополнение нет.'; return; }
-  requests.forEach(item => {
-    const row = element('div', 'list-item');
+function renderAdminTopups(requests){
+  const root=$('adminTopups');root.replaceChildren();
+  if(!requests.length){root.textContent='Заявок на пополнение нет.';return}
+  requests.forEach(item=>{
+    const row=element('div','list-item');
     row.append(
-      element('strong', '', `№${item.id} · ${item.username} · ${money(item.amount)}`),
-      element('div', 'muted', new Date(item.createdAt).toLocaleString('ru-RU')),
-      element('span', `status ${item.status}`, statusLabel(item.status))
+      element('strong','',`№${item.id} · ${item.username} · ${money(item.amount)}`),
+      element('div','muted',new Date(item.createdAt).toLocaleString('ru-RU')),
+      element('span',`status ${item.status}`,statusLabel(item.status))
     );
-    if (item.receiptUrl) {
-      const image = element('img');
-      image.alt = 'Чек пользователя';
-      image.loading = 'lazy';
-      image.style.cssText = 'display:block;max-width:100%;max-height:350px;margin:12px 0;border-radius:10px';
-      image.src = item.receiptUrl;
-      row.append(image);
+    if(item.receiptUrl){
+      const image=element('img');image.alt='Чек пользователя';image.loading='lazy';
+      image.style.cssText='display:block;max-width:100%;max-height:350px;margin:12px 0;border-radius:10px';
+      image.src=item.receiptUrl;row.append(image);
     }
-    adminActionButtons(row, item, 'topup');
-    root.append(row);
+    adminActionButtons(row,item,'topup');root.append(row);
   });
 }
-function renderAdminWithdrawals(requests) {
-  const root = $('adminWithdrawals');
-  root.replaceChildren();
-  if (!requests.length) { root.textContent = 'Заявок на вывод нет.'; return; }
-  requests.forEach(item => {
-    const row = element('div', 'list-item');
+function renderAdminWithdrawals(requests){
+  const root=$('adminWithdrawals');root.replaceChildren();
+  if(!requests.length){root.textContent='Заявок на вывод нет.';return}
+  requests.forEach(item=>{
+    const row=element('div','list-item');
     row.append(
-      element('strong', '', `№${item.id} · ${item.username} · ${money(item.amount)}`),
-      element('p', 'muted', 'Получатель: ' + item.recipient),
-      element('p', 'muted', 'Реквизиты: ' + item.paymentDetails),
-      element('span', `status ${item.status}`, statusLabel(item.status))
+      element('strong','',`№${item.id} · ${item.username} · ${money(item.amount)}`),
+      element('p','muted','Получатель: '+item.recipient),
+      element('p','muted','Реквизиты: '+item.paymentDetails),
+      element('span',`status ${item.status}`,statusLabel(item.status))
     );
-    adminActionButtons(row, item, 'withdrawal');
+    adminActionButtons(row,item,'withdrawal');root.append(row);
+  });
+}
+function renderAdminUsers(users){
+  const root=$('adminUsers');root.replaceChildren();
+  if(!users.length){root.textContent='Пользователей пока нет.';return}
+  users.forEach(user=>{
+    const row=element('div','list-item');
+    row.append(element('strong','',user.username),element('div','muted',`ID ${user.id} · ${money(user.balance)}`));
     root.append(row);
   });
 }
-function renderAdminUsers(users) {
-  const root = $('adminUsers');
-  root.replaceChildren();
-  if (!users.length) { root.textContent = 'Пользователей пока нет.'; return; }
-  users.forEach(user => {
-    const row = element('div', 'list-item');
-    row.append(
-      element('strong', '', user.username),
-      element('div', 'muted', `ID ${user.id} · ${money(user.balance)}`)
-    );
-    root.append(row);
-  });
-}
-async function processAdminRequest(type, id, action) {
-  const label = type === 'topup' ? 'пополнение' : 'вывод';
-  if (!confirm(`${action === 'approve' ? 'Одобрить' : 'Отклонить'} заявку на ${label} №${id}?`)) return;
-  const endpoint = type === 'topup'
-    ? `/api/admin/topup-requests/${id}/${action}`
-    : `/api/admin/withdrawal-requests/${id}/${action}`;
-  try {
-    await post(endpoint, {});
+async function processAdminRequest(type,id,action){
+  const label=type==='topup'?'пополнение':'вывод';
+  if(!confirm(`${action==='approve'?'Одобрить':'Отклонить'} заявку на ${label} №${id}?`))return;
+  const endpoint=type==='topup'?`/api/admin/topup-requests/${id}/${action}`:`/api/admin/withdrawal-requests/${id}/${action}`;
+  try{
+    await post(endpoint,{});
     showMessage(`Заявка №${id} обработана.`);
     await refreshAdmin();
-  } catch (error) {
-    showMessage(error.message, true);
-    await refreshAdmin();
+  }catch(error){
+    showMessage(error.message,true);await refreshAdmin();
   }
 }
-$('refreshAdmin').addEventListener('click', refreshAdmin);
+$('refreshAdmin').addEventListener('click',refreshAdmin);
 
 renderAppleGrid();
 loadMe();
