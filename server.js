@@ -1,962 +1,692 @@
-"use strict";
-
-const express = require("express");
-const session = require("express-session");
-const bcrypt = require("bcryptjs");
-const Database = require("better-sqlite3");
-const helmet = require("helmet");
-const path = require("path");
-const fs = require("fs");
-
-const rateLimitModule = require("express-rate-limit");
-const rateLimit =
-  rateLimitModule.rateLimit || rateLimitModule;
-
-const app = express();
-
-const PORT = Number(process.env.PORT) || 3000;
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
-
-const ADMIN_USERNAME = (
-  process.env.ADMIN_USERNAME || "black"
-).toLowerCase();
-
-const SESSION_SECRET = process.env.SESSION_SECRET;
-
-if (
-  IS_PRODUCTION &&
-  (!SESSION_SECRET || SESSION_SECRET.length < 32)
-) {
-  throw new Error(
-    "В Render задай SESSION_SECRET длиной не менее 32 символов."
-  );
-}
-
-app.disable("x-powered-by");
-app.set("trust proxy", 1);
-
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        frameAncestors: ["'none'"]
-      }
-    }
-  })
-);
-
-app.use(express.json({ limit: "10kb" }));
-
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 300,
-    standardHeaders: "draft-8",
-    legacyHeaders: false
-  })
-);
-
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 20,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  message: {
-    error: "Слишком много попыток. Попробуй позже."
-  }
-});
-
-// --------------------------------------------------
-// БАЗА ДАННЫХ
-// --------------------------------------------------
-
-const DB_PATH =
-  process.env.DB_PATH ||
-  path.join(__dirname, "data", "deposit.sqlite");
-
-fs.mkdirSync(path.dirname(DB_PATH), {
-  recursive: true
-});
-
-const db = new Database(DB_PATH);
-
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    balance INTEGER NOT NULL DEFAULT 100000,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS transactions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    amount INTEGER NOT NULL,
-    balance_after INTEGER NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`);
-
-// Добавляем игровое ID, не удаляя существующих пользователей.
-const userColumns = db
-  .prepare("PRAGMA table_info(users)")
-  .all();
-
-if (!userColumns.some((column) => column.name === "gamer_id")) {
-  db.exec("ALTER TABLE users ADD COLUMN gamer_id TEXT");
-}
-
-// Присваиваем ID существующим игрокам.
-const usersWithoutGamerId = db.prepare(`
-  SELECT id
-  FROM users
-  WHERE gamer_id IS NULL OR gamer_id = ''
-`).all();
-
-const setGamerId = db.prepare(`
-  UPDATE users
-  SET gamer_id = ?
-  WHERE id = ?
-`);
-
-for (const user of usersWithoutGamerId) {
-  setGamerId.run(
-    "D2" + String(user.id).padStart(8, "0"),
-    user.id
-  );
-}
-
-db.exec(`
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_users_gamer_id
-  ON users(gamer_id);
-
-  CREATE TABLE IF NOT EXISTS topup_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    gamer_id TEXT NOT NULL,
-    amount INTEGER NOT NULL CHECK(amount > 0),
-    status TEXT NOT NULL DEFAULT 'pending'
-      CHECK(status IN ('pending', 'approved', 'rejected')),
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    reviewed_at TEXT,
-    admin_note TEXT,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`);
-
-const findUserById = db.prepare(`
-  SELECT id, username, password_hash, balance,
-         gamer_id, created_at
-  FROM users
-  WHERE id = ?
-`);
-
-const findUserByUsername = db.prepare(`
-  SELECT id, username, password_hash, balance,
-         gamer_id, created_at
-  FROM users
-  WHERE lower(username) = lower(?)
-`);
-
-const insertTransaction = db.prepare(`
-  INSERT INTO transactions
-    (user_id, type, amount, balance_after)
-  VALUES (?, ?, ?, ?)
-`);
-
-function publicUser(user) {
-  return {
-    id: user.id,
-    username: user.username,
-    gamer_id: user.gamer_id,
-    balance: user.balance,
-    created_at: user.created_at
-  };
-}
-
-// --------------------------------------------------
-// СЕССИИ
-// --------------------------------------------------
-
-app.use(
-  session({
-    name: "deposit.sid",
-    secret: SESSION_SECRET || "development-only-change-this-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: IS_PRODUCTION,
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    }
-  })
-);
-
-// --------------------------------------------------
-// ПРОВЕРКИ ДОСТУПА
-// --------------------------------------------------
-
-function requireLogin(req, res, next) {
-  const userId = req.session.userId;
-
-  if (!userId) {
-    return res.status(401).json({
-      error: "Сначала войди в аккаунт."
-    });
-  }
-
-  const user = findUserById.get(userId);
-
-  if (!user) {
-    req.session.destroy(() => {});
-
-    return res.status(401).json({
-      error: "Аккаунт не найден. Войди снова."
-    });
-  }
-
-  req.user = user;
-  next();
-}
-
-function requireAdmin(req, res, next) {
-  if (!req.session.userId) {
-    return res.status(401).json({
-      error: "Сначала войди в аккаунт."
-    });
-  }
-
-  const user = findUserById.get(req.session.userId);
-
-  if (!user || user.username.toLowerCase() !== ADMIN_USERNAME) {
-    return res.status(403).json({
-      error: "Доступ только для администратора."
-    });
-  }
-
-  req.user = user;
-  next();
-}
-
-// --------------------------------------------------
-// РЕГИСТРАЦИЯ
-// --------------------------------------------------
-
-app.post(
-  "/api/register",
-  loginLimiter,
-  async (req, res) => {
-    try {
-      const username =
-        typeof req.body.username === "string"
-          ? req.body.username.trim()
-          : "";
-
-      const password =
-        typeof req.body.password === "string"
-          ? req.body.password
-          : "";
-
-      if (!/^[a-zA-Z0-9_-]{3,32}$/.test(username)) {
-        return res.status(400).json({
-          error:
-            "Логин: от 3 до 32 символов, только латинские буквы, цифры, _ и -."
-        });
-      }
-
-      if (password.length < 6 || password.length > 128) {
-        return res.status(400).json({
-          error: "Пароль должен содержать от 6 до 128 символов."
-        });
-      }
-
-      // Нельзя создать новый аккаунт с именем администратора.
-      if (username.toLowerCase() === ADMIN_USERNAME) {
-        return res.status(400).json({
-          error: "Этот логин зарезервирован."
-        });
-      }
-
-      if (findUserByUsername.get(username)) {
-        return res.status(409).json({
-          error: "Такой логин уже занят."
-        });
-      }
-
-      const passwordHash = await bcrypt.hash(password, 12);
-
-      const createUser = db.transaction(() => {
-        const result = db.prepare(`
-          INSERT INTO users
-            (username, password_hash, balance)
-          VALUES (?, ?, 0)
-        `).run(username, passwordHash);
-
-        const userId = Number(result.lastInsertRowid);
-
-        const gamerId =
-          "D2" + String(userId).padStart(8, "0");
-
-        db.prepare(`
-          UPDATE users
-          SET gamer_id = ?
-          WHERE id = ?
-        `).run(gamerId, userId);
-
-        return userId;
-      });
-
-      const userId = createUser();
-
-      req.session.userId = userId;
-
-      req.session.save((error) => {
-        if (error) {
-          console.error("Session save error:", error);
-
-          return res.status(500).json({
-            error: "Аккаунт создан, но не удалось войти. Попробуй войти вручную."
-          });
-        }
-
-        const user = findUserById.get(userId);
-
-        return res.status(201).json({
-          ok: true,
-          user: publicUser(user),
-          message: "Аккаунт создан. Баланс: 0 UZS."
-        });
-      });
-    } catch (error) {
-      console.error("Registration error:", error.message);
-
-      if (String(error.code || "").startsWith("SQLITE_CONSTRAINT")) {
-        return res.status(409).json({
-          error: "Не удалось создать аккаунт: данные уже используются."
-        });
-      }
-
-      return res.status(500).json({
-        error: "Ошибка регистрации."
-      });
-    }
-  }
-);
-
-// --------------------------------------------------
-// ВХОД
-// --------------------------------------------------
-
-app.post(
-  "/api/login",
-  loginLimiter,
-  async (req, res) => {
-    try {
-      const username =
-        typeof req.body.username === "string"
-          ? req.body.username.trim()
-          : "";
-
-      const password =
-        typeof req.body.password === "string"
-          ? req.body.password
-          : "";
-
-      if (!username || !password) {
-        return res.status(400).json({
-          error: "Введи логин и пароль."
-        });
-      }
-
-      const user = findUserByUsername.get(username);
-
-      if (
-        !user ||
-        !(await bcrypt.compare(password, user.password_hash))
-      ) {
-        return res.status(401).json({
-          error: "Неверный логин или пароль."
-        });
-      }
-
-      req.session.regenerate((error) => {
-        if (error) {
-          return res.status(500).json({
-            error: "Не удалось начать сессию."
-          });
-        }
-
-        req.session.userId = user.id;
-
-        req.session.save((saveError) => {
-          if (saveError) {
-            return res.status(500).json({
-              error: "Не удалось сохранить сессию."
-            });
-          }
-
-          const updatedUser = findUserById.get(user.id);
-
-          return res.json({
-            ok: true,
-            user: publicUser(updatedUser),
-            message: "Вход выполнен."
-          });
-        });
-      });
-    } catch (error) {
-      console.error("Login error:", error.message);
-
-      return res.status(500).json({
-        error: "Ошибка входа."
-      });
-    }
-  }
-);
-
-// --------------------------------------------------
-// ВЫХОД
-// --------------------------------------------------
-
-app.post("/api/logout", (req, res) => {
-  req.session.destroy((error) => {
-    if (error) {
-      return res.status(500).json({
-        error: "Не удалось выйти."
-      });
-    }
-
-    res.clearCookie("deposit.sid");
-
-    return res.json({
-      ok: true,
-      message: "Выход выполнен."
-    });
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DEPOSIT 2.0 — Игровой клуб</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151d31;--gold:#f4c96b;--text:#f4f6ff;--muted:#a9b4ca;--border:#303b54;--green:#3bd69a;--red:#ff737d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,Arial,sans-serif}
+header{padding:22px 16px;background:#11192a;border-bottom:1px solid var(--border)}
+.wrap{width:min(1000px,94%);margin:auto}
+h1{margin:0;color:var(--gold);font-size:26px}
+.subtitle{color:var(--muted);margin-top:5px}
+main{padding:20px 0 50px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,button{font:inherit;border-radius:9px;padding:11px 12px}
+input,select{background:#0d1425;color:var(--text);border:1px solid var(--border);max-width:100%}
+button{border:0;background:var(--gold);color:#17130a;font-weight:700;cursor:pointer}
+button.secondary{background:#26334d;color:var(--text)}
+button.danger{background:#8f303d;color:white}
+button:disabled{opacity:.45;cursor:not-allowed}
+.hidden{display:none!important}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}
+.game{border:1px solid var(--border);background:#11192a;border-radius:14px;padding:16px}
+.game h3{margin-top:0}
+.balance{font-size:26px;color:var(--gold);font-weight:800}
+.muted{color:var(--muted);font-size:14px}
+.result{margin-top:12px;min-height:26px;white-space:pre-wrap}
+.cards{font-size:25px;line-height:1.9;overflow-wrap:anywhere}
+.apple-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.apple-row button{font-size:23px;min-width:54px}
+.good{color:var(--green)}.bad{color:var(--red)}
+a{color:var(--gold)}
+hr{border:0;border-top:1px solid var(--border);margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.table-wrap{overflow-x:auto}
+@media(max-width:480px){.panel{padding:13px}input{width:100%}.row button{flex:1}}
+</style>
+</head>
+<body>
+<header>
+<div class="wrap">
+<h1>DEPOSIT 2.0</h1>
+<div class="subtitle">Игровая платформа · демо-режим</div>
+</div>
+</header>
+
+<main class="wrap">
+<section id="auth" class="panel">
+<h2 id="authTitle">Вход</h2>
+<form id="authForm" class="row">
+<input id="username" placeholder="Логин" minlength="3" maxlength="24" required>
+<input id="password" type="password" placeholder="Пароль (от 8 символов)" minlength="8" required>
+<button id="authSubmit">Войти</button>
+</form>
+<p><button class="secondary" id="toggleAuth" type="button">Создать аккаунт</button></p>
+<div class="result" id="authMessage"></div>
+</section>
+
+<section id="app" class="hidden">
+<div class="panel">
+<div class="row" style="justify-content:space-between">
+<div>
+<div class="muted">Ваш игровой ID</div>
+<strong id="gamerId">—</strong>
+<div class="muted" id="playerName"></div>
+</div>
+<div>
+<div class="muted">Виртуальный баланс</div>
+<div class="balance"><span id="balance">0</span> UZS</div>
+</div>
+<button class="secondary" id="logout">Выйти</button>
+</div>
+<p class="muted">Все ставки и выигрыши в этом режиме виртуальные. Пополнения — тестовые заявки.</p>
+</div>
+
+<div class="panel">
+<h2>Тестовое пополнение</h2>
+<form id="topupForm" class="row">
+<input id="topupAmount" type="number" min="1000" max="10000000" step="1000" value="50000" required>
+<button>Создать заявку</button>
+</form>
+<div id="topupMessage" class="result"></div>
+<h3>Мои заявки</h3>
+<div id="myRequests" class="muted">Загрузка…</div>
+</div>
+
+<h2>Игры</h2>
+<div class="grid">
+<article class="game">
+<h3>🍀 Luck</h3>
+<p class="muted">45% шанс получить 2× ставки.</p>
+<input id="bet-luck" type="number" min="100" max="1000000" step="100" value="100">
+<button data-simple="luck">Играть</button>
+<div class="result" id="result-luck"></div>
+</article>
+
+<article class="game">
+<h3>🪙 Coin</h3>
+<p class="muted">Угадай сторону монеты. Выигрыш 2×.</p>
+<input id="bet-coin" type="number" min="100" max="1000000" step="100" value="100">
+<button data-simple="coin">Подбросить</button>
+<div class="result" id="result-coin"></div>
+</article>
+
+<article class="game">
+<h3>🎯 Challenge</h3>
+<p class="muted">Сложное испытание. Выигрыш 3×.</p>
+<input id="bet-challenge" type="number" min="100" max="1000000" step="100" value="100">
+<button data-simple="challenge">Испытать удачу</button>
+<div class="result" id="result-challenge"></div>
+</article>
+
+<article class="game">
+<h3>🍎 Apple of Fortune</h3>
+<p class="muted">На каждом шаге выбери яблоко, избегая ловушки. Множитель растёт на 0,5× за шаг.</p>
+<input id="bet-apple" type="number" min="100" max="1000000" step="100" value="100">
+<button id="appleStart">Начать</button>
+<div id="appleArea" class="hidden">
+<div class="apple-row">
+<button type="button" data-apple="0">🍎</button>
+<button type="button" data-apple="1">🍎</button>
+<button type="button" data-apple="2">🍎</button>
+</div>
+<p>Шаг: <strong id="appleStep">0</strong> · Множитель: <strong id="appleMultiplier">1×</strong></p>
+<button id="appleCashout" class="secondary">Забрать выигрыш</button>
+</div>
+<div class="result" id="result-apple"></div>
+</article>
+
+<article class="game">
+<h3>✈️ Aviator</h3>
+<p class="muted">Забери выплату до падения самолёта. Множитель зависит от времени раунда.</p>
+<input id="bet-aviator" type="number" min="100" max="1000000" step="100" value="100">
+<button id="aviatorStart">Начать полёт</button>
+<div id="aviatorArea" class="hidden">
+<p>Множитель: <strong id="aviatorMultiplier">1.00×</strong></p>
+<button id="aviatorCashout">Забрать выигрыш</button>
+</div>
+<div class="result" id="result-aviator"></div>
+</article>
+
+<article class="game">
+<h3>🃏 21 очко — Blackjack</h3>
+<p class="muted">Набери 21 или приблизься к ней, не перебрав. Дилер добирает до 17.</p>
+<input id="bet-blackjack" type="number" min="100" max="1000000" step="100" value="100">
+<button id="blackjackStart">Начать раунд</button>
+<div id="blackjackArea" class="hidden">
+<p>Ваши карты: <span id="bjPlayer" class="cards"></span></p>
+<p>Ваши очки: <strong id="bjPlayerValue">0</strong></p>
+<p>Карты дилера: <span id="bjDealer" class="cards"></span></p>
+<p id="bjDealerValue"></p>
+<div class="row">
+<button id="bjHit">Ещё карту</button>
+<button id="bjStand" class="secondary">Хватит</button>
+</div>
+</div>
+<div class="result" id="result-blackjack"></div>
+</article>
+</div>
+
+<div class="panel" style="margin-top:16px">
+<h2>История операций</h2>
+<button id="refreshHistory" class="secondary">Обновить</button>
+<div id="history" class="table-wrap"></div>
+</div>
+
+<section id="adminPanel" class="panel hidden">
+<h2>Админ-панель</h2>
+<button id="refreshAdmin">Обновить заявки</button>
+<div id="adminRequests" class="table-wrap"></div>
+<h3>Пользователи</h3>
+<div id="adminUsers" class="table-wrap"></div>
+<div id="adminMessage" class="result"></div>
+</section>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let user = null;
+let isRegister = false;
+let appleActive = false;
+let aviatorActive = false;
+let blackjackActive = false;
+let aviatorTimer = null;
+
+async function api(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options
   });
-});
 
-// --------------------------------------------------
-// ДАННЫЕ ТЕКУЩЕГО ИГРОКА
-// --------------------------------------------------
+  let data;
+  try { data = await response.json(); }
+  catch { throw new Error("Сервер вернул неверный ответ"); }
 
-app.get("/api/me", (req, res) => {
-  if (!req.session.userId) {
-    return res.json({ user: null });
+  if (!response.ok) throw new Error(data.error || "Ошибка запроса");
+  return data;
+}
+
+function showResult(id, text, good = false) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = "result " + (good ? "good" : "bad");
+}
+
+function money(value) {
+  return Number(value || 0).toLocaleString("ru-RU");
+}
+
+async function refreshMe() {
+  const data = await api("/api/me");
+  user = data.user;
+  $("balance").textContent = money(user.balance);
+  $("gamerId").textContent = user.gamer_id;
+  $("playerName").textContent = "Игрок: " + user.username;
+}
+
+async function refreshRequests() {
+  const data = await api("/api/my-topup-requests");
+
+  if (!data.requests.length) {
+    $("myRequests").textContent = "Заявок пока нет.";
+    return;
   }
 
-  const user = findUserById.get(req.session.userId);
+  $("myRequests").innerHTML = "";
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>ID</th><th>Сумма</th><th>Статус</th><th>Дата</th></tr></thead>";
+  const tbody = document.createElement("tbody");
 
-  if (!user) {
-    return res.json({ user: null });
+  for (const request of data.requests) {
+    const tr = document.createElement("tr");
+    for (const value of [
+      request.id,
+      money(request.amount) + " UZS",
+      request.status,
+      request.created_at
+    ]) {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
   }
 
-  return res.json({
-    user: publicUser(user)
-  });
-});
+  table.appendChild(tbody);
+  $("myRequests").appendChild(table);
+}
 
-// --------------------------------------------------
-// ИСТОРИЯ ОПЕРАЦИЙ ИГРОКА
-// --------------------------------------------------
+async function refreshHistory() {
+  const data = await api("/api/history");
+  $("history").innerHTML = "";
 
-app.get("/api/history", requireLogin, (req, res) => {
-  const items = db.prepare(`
-    SELECT id, type, amount, balance_after, created_at
-    FROM transactions
-    WHERE user_id = ?
-    ORDER BY id DESC
-    LIMIT 100
-  `).all(req.user.id);
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>Операция</th><th>Сумма</th><th>Баланс после</th><th>Дата</th></tr></thead>";
+  const tbody = document.createElement("tbody");
 
-  return res.json({ items });
-});
+  for (const item of data.history) {
+    const tr = document.createElement("tr");
+    const values = [
+      item.type,
+      money(item.amount) + " UZS",
+      money(item.balance_after) + " UZS",
+      item.created_at
+    ];
 
-// --------------------------------------------------
-// ТЕСТОВЫЕ ИГРЫ
-// --------------------------------------------------
-
-app.post("/api/demo-play", requireLogin, (req, res) => {
-  const bet = Number(req.body.bet);
-  const game = req.body.game;
-
-  if (
-    bet !== 100 ||
-    !["luck", "coin", "challenge"].includes(game)
-  ) {
-    return res.status(400).json({
-      error: "Некорректная демо-игра или ставка."
+    values.forEach(value => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
     });
+
+    tbody.appendChild(tr);
   }
+
+  table.appendChild(tbody);
+  $("history").appendChild(table);
+}
+
+async function refreshAdmin() {
+  try {
+    await api("/api/admin/me");
+    $("adminPanel").classList.remove("hidden");
+
+    const data = await api("/api/admin/topup-requests");
+    $("adminRequests").innerHTML = "";
+
+    const table = document.createElement("table");
+    table.innerHTML = "<thead><tr><th>ID</th><th>Игрок</th><th>Game ID</th><th>Сумма</th><th>Статус</th><th>Действия</th></tr></thead>";
+    const tbody = document.createElement("tbody");
+
+    for (const r of data.requests) {
+      const tr = document.createElement("tr");
+      const vals = [r.id, r.username, r.gamer_id, money(r.amount) + " UZS", r.status];
+
+      vals.forEach(v => {
+        const td = document.createElement("td");
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+
+      const td = document.createElement("td");
+
+      if (r.status === "pending") {
+        const approve = document.createElement("button");
+        approve.textContent = "Одобрить";
+        approve.addEventListener("click", () => reviewTopup(r.id, "approve"));
+
+        const reject = document.createElement("button");
+        reject.textContent = "Отклонить";
+        reject.className = "danger";
+        reject.style.marginLeft = "6px";
+        reject.addEventListener("click", () => reviewTopup(r.id, "reject"));
+
+        td.append(approve, reject);
+      } else {
+        td.textContent = "Обработана";
+      }
+
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+    $("adminRequests").appendChild(table);
+
+    const usersData = await api("/api/admin/users");
+    $("adminUsers").innerHTML = "";
+
+    const usersTable = document.createElement("table");
+    usersTable.innerHTML = "<thead><tr><th>ID</th><th>Логин</th><th>Game ID</th><th>Баланс</th></tr></thead>";
+    const usersBody = document.createElement("tbody");
+
+    for (const u of usersData.users) {
+      const tr = document.createElement("tr");
+
+      [u.id, u.username, u.gamer_id, money(u.balance) + " UZS"].forEach(v => {
+        const td = document.createElement("td");
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+
+      usersBody.appendChild(tr);
+    }
+
+    usersTable.appendChild(usersBody);
+    $("adminUsers").appendChild(usersTable);
+  } catch (error) {
+    $("adminPanel").classList.add("hidden");
+  }
+}
+
+async function reviewTopup(id, action) {
+  try {
+    await api(`/api/admin/topup-requests/${id}/${action}`, { method: "POST", body: "{}" });
+    showResult("adminMessage", "Заявка обработана.", true);
+    await refreshAdmin();
+    await refreshMe();
+    await refreshRequests();
+  } catch (error) {
+    showResult("adminMessage", error.message);
+  }
+}
+
+async function enterApp() {
+  $("auth").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  await refreshMe();
+  await refreshRequests();
+  await refreshHistory();
+  await refreshAdmin();
+}
+
+$("toggleAuth").addEventListener("click", () => {
+  isRegister = !isRegister;
+  $("authTitle").textContent = isRegister ? "Регистрация" : "Вход";
+  $("authSubmit").textContent = isRegister ? "Создать аккаунт" : "Войти";
+  $("toggleAuth").textContent = isRegister ? "У меня уже есть аккаунт" : "Создать аккаунт";
+});
+
+$("authForm").addEventListener("submit", async e => {
+  e.preventDefault();
 
   try {
-    const play = db.transaction(() => {
-      const user = findUserById.get(req.user.id);
-
-      if (user.balance < bet) {
-        throw new Error("Недостаточно средств для игры.");
-      }
-
-      const won = Math.random() < 0.5;
-
-      let balance = user.balance - bet;
-
-      insertTransaction.run(
-        user.id,
-        "demo_bet",
-        -bet,
-        balance
-      );
-
-      let message;
-
-      if (won) {
-        // Возврат ставки плюс виртуальный выигрыш.
-        balance += bet * 2;
-
-        insertTransaction.run(
-          user.id,
-          "demo_win",
-          bet * 2,
-          balance
-        );
-
-        message = "Удача! Тестовый выигрыш зачислен.";
-      } else {
-        message = "В этот раз не повезло. Это демо-игра.";
-      }
-
-      db.prepare(`
-        UPDATE users
-        SET balance = ?
-        WHERE id = ?
-      `).run(balance, user.id);
-
-      return { balance, won, message };
+    const data = await api(isRegister ? "/api/register" : "/api/login", {
+      method: "POST",
+      body: JSON.stringify({
+        username: $("username").value.trim(),
+        password: $("password").value
+      })
     });
 
-    const result = play();
-
-    return res.json({
-      ok: true,
-      balance: result.balance,
-      won: result.won,
-      message: result.message
-    });
+    user = data.user;
+    $("authMessage").textContent = "";
+    await enterApp();
   } catch (error) {
-    return res.status(400).json({
-      error: error.message || "Не удалось сыграть."
-    });
+    showResult("authMessage", error.message);
   }
 });
 
-// --------------------------------------------------
-// ТЕСТОВОЕ ИЗМЕНЕНИЕ БАЛАНСА АДМИНИСТРАТОРОМ
-// --------------------------------------------------
+$("logout").addEventListener("click", async () => {
+  stopAviatorTimer();
 
-app.post(
-  "/api/admin/demo-adjust",
-  requireAdmin,
-  (req, res) => {
-    const userId = Number(req.body.userId);
-    const amount = Number(req.body.amount);
+  try { await api("/api/logout", { method: "POST", body: "{}" }); }
+  finally {
+    user = null;
+    $("app").classList.add("hidden");
+    $("auth").classList.remove("hidden");
+  }
+});
 
-    if (
-      !Number.isSafeInteger(userId) ||
-      userId < 1 ||
-      !Number.isSafeInteger(amount) ||
-      amount === 0 ||
-      Math.abs(amount) > 1000000
-    ) {
-      return res.status(400).json({
-        error: "Проверь ID пользователя и сумму."
-      });
-    }
+$("topupForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  try {
+    const amount = Number($("topupAmount").value);
+    await api("/api/topup-requests", {
+      method: "POST",
+      body: JSON.stringify({ amount })
+    });
+
+    showResult("topupMessage", "Тестовая заявка создана. Баланс изменится только после одобрения администратором.", true);
+    await refreshRequests();
+  } catch (error) {
+    showResult("topupMessage", error.message);
+  }
+});
+
+document.querySelectorAll("[data-simple]").forEach(button => {
+  button.addEventListener("click", async () => {
+    const game = button.dataset.simple;
+    const bet = Number($("bet-" + game).value);
 
     try {
-      const adjust = db.transaction(() => {
-        const user = findUserById.get(userId);
-
-        if (!user) {
-          throw new Error("Пользователь не найден.");
-        }
-
-        const balance = user.balance + amount;
-
-        if (
-          !Number.isSafeInteger(balance) ||
-          balance < 0
-        ) {
-          throw new Error(
-            "Баланс не может быть отрицательным."
-          );
-        }
-
-        db.prepare(`
-          UPDATE users
-          SET balance = ?
-          WHERE id = ?
-        `).run(balance, userId);
-
-        insertTransaction.run(
-          userId,
-          "admin_demo_adjust",
-          amount,
-          balance
-        );
-
-        return balance;
+      const data = await api("/api/demo-play", {
+        method: "POST",
+        body: JSON.stringify({ game, bet })
       });
 
-      const balance = adjust();
-
-      return res.json({
-        ok: true,
-        balance,
-        message: "Тестовый баланс изменён."
-      });
+      showResult("result-" + game, `${data.result}\nВыплата: ${money(data.payout)} UZS`, data.payout > 0);
+      await refreshMe();
+      await refreshHistory();
     } catch (error) {
-      return res.status(400).json({
-        error: error.message || "Ошибка изменения баланса."
-      });
+      showResult("result-" + game, error.message);
     }
-  }
-);
-
-// --------------------------------------------------
-// ПРОВЕРКА АДМИНИСТРАТОРА
-// --------------------------------------------------
-
-app.get("/api/admin/me", requireAdmin, (req, res) => {
-  return res.json({
-    ok: true,
-    user: publicUser(req.user)
   });
 });
 
-// --------------------------------------------------
-// СПИСОК ПОЛЬЗОВАТЕЛЕЙ
-// --------------------------------------------------
+/* Apple */
 
-app.get("/api/admin/users", requireAdmin, (req, res) => {
-  const users = db.prepare(`
-    SELECT id, username, balance, gamer_id, created_at
-    FROM users
-    ORDER BY id DESC
-    LIMIT 500
-  `).all();
+$("appleStart").addEventListener("click", async () => {
+  try {
+    if (appleActive) throw new Error("Сначала завершите текущую игру");
 
-  return res.json({ users });
+    const data = await api("/api/games/apple/start", {
+      method: "POST",
+      body: JSON.stringify({ bet: Number($("bet-apple").value) })
+    });
+
+    appleActive = true;
+    $("appleArea").classList.remove("hidden");
+    $("appleStep").textContent = "0";
+    $("appleMultiplier").textContent = "1×";
+    showResult("result-apple", "Выберите одно из трёх яблок.", true);
+    await refreshMe();
+  } catch (error) {
+    showResult("result-apple", error.message);
+  }
 });
 
-// --------------------------------------------------
-// ИСТОРИЯ КОНКРЕТНОГО ПОЛЬЗОВАТЕЛЯ
-// --------------------------------------------------
-
-app.get(
-  "/api/admin/users/:id/history",
-  requireAdmin,
-  (req, res) => {
-    const userId = Number(req.params.id);
-
-    if (!Number.isSafeInteger(userId) || userId < 1) {
-      return res.status(400).json({
-        error: "Некорректный ID пользователя."
-      });
-    }
-
-    const items = db.prepare(`
-      SELECT id, type, amount, balance_after, created_at
-      FROM transactions
-      WHERE user_id = ?
-      ORDER BY id DESC
-      LIMIT 100
-    `).all(userId);
-
-    return res.json({ items });
-  }
-);
-
-// --------------------------------------------------
-// СОЗДАНИЕ ТЕСТОВОЙ ЗАЯВКИ НА ПОПОЛНЕНИЕ
-// --------------------------------------------------
-
-app.post(
-  "/api/topup-requests",
-  requireLogin,
-  (req, res) => {
-    const amount = Number(req.body.amount);
-
-    if (
-      !Number.isSafeInteger(amount) ||
-      amount < 1000 ||
-      amount > 10000000
-    ) {
-      return res.status(400).json({
-        error:
-          "Сумма должна быть от 1 000 до 10 000 000 UZS."
-      });
-    }
+document.querySelectorAll("[data-apple]").forEach(button => {
+  button.addEventListener("click", async () => {
+    if (!appleActive) return;
 
     try {
-      const result = db.prepare(`
-        INSERT INTO topup_requests
-          (user_id, gamer_id, amount, status)
-        VALUES (?, ?, ?, 'pending')
-      `).run(
-        req.user.id,
-        req.user.gamer_id,
-        amount
+      const data = await api("/api/games/apple/pick", {
+        method: "POST",
+        body: JSON.stringify({ choice: Number(button.dataset.apple) })
+      });
+
+      if (data.lost) {
+        appleActive = false;
+        $("appleArea").classList.add("hidden");
+        showResult("result-apple", data.message, false);
+        await refreshMe();
+        await refreshHistory();
+        return;
+      }
+
+      $("appleStep").textContent = data.game.step;
+      $("appleMultiplier").textContent = data.game.multiplier + "×";
+      showResult("result-apple", "Удачный шаг! Можете рискнуть ещё раз или забрать выигрыш.", true);
+    } catch (error) {
+      showResult("result-apple", error.message);
+    }
+  });
+});
+
+$("appleCashout").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/games/apple/cashout", {
+      method: "POST",
+      body: "{}"
+    });
+
+    appleActive = false;
+    $("appleArea").classList.add("hidden");
+    showResult("result-apple", `Вы забрали ${money(data.payout)} UZS (${data.multiplier}×).`, true);
+    await refreshMe();
+    await refreshHistory();
+  } catch (error) {
+    showResult("result-apple", error.message);
+  }
+});
+
+/* Aviator */
+
+function stopAviatorTimer() {
+  if (aviatorTimer) clearInterval(aviatorTimer);
+  aviatorTimer = null;
+}
+
+$("aviatorStart").addEventListener("click", async () => {
+  try {
+    if (aviatorActive) throw new Error("Сначала завершите текущий раунд");
+
+    const data = await api("/api/games/aviator/start", {
+      method: "POST",
+      body: JSON.stringify({ bet: Number($("bet-aviator").value) })
+    });
+
+    aviatorActive = true;
+    $("aviatorArea").classList.remove("hidden");
+    showResult("result-aviator", "Самолёт взлетел. Заберите выигрыш до падения!", true);
+    await refreshMe();
+
+    stopAviatorTimer();
+    aviatorTimer = setInterval(async () => {
+      if (!aviatorActive) return;
+
+      try {
+        const state = await api("/api/games/aviator/state");
+
+        if (state.crashed) {
+          aviatorActive = false;
+          stopAviatorTimer();
+          $("aviatorArea").classList.add("hidden");
+          showResult("result-aviator", `Самолёт упал на ${state.multiplier}×. Ставка потеряна.`);
+          await refreshMe();
+          await refreshHistory();
+        } else {
+          $("aviatorMultiplier").textContent = Number(state.multiplier).toFixed(2) + "×";
+        }
+      } catch (error) {
+        aviatorActive = false;
+        stopAviatorTimer();
+        $("aviatorArea").classList.add("hidden");
+        showResult("result-aviator", error.message);
+      }
+    }, 200);
+  } catch (error) {
+    showResult("result-aviator", error.message);
+  }
+});
+
+$("aviatorCashout").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/games/aviator/cashout", {
+      method: "POST",
+      body: "{}"
+    });
+
+    aviatorActive = false;
+    stopAviatorTimer();
+    $("aviatorArea").classList.add("hidden");
+
+    showResult("result-aviator",
+      data.crashed
+        ? "Самолёт уже упал. Ставка потеряна."
+        : `Вы забрали ${money(data.payout)} UZS (${Number(data.multiplier).toFixed(2)}×).`,
+      !data.crashed
+    );
+
+    await refreshMe();
+    await refreshHistory();
+  } catch (error) {
+    showResult("result-aviator", error.message);
+  }
+});
+
+/* Blackjack */
+
+function showCards(id, cards) {
+  $(id).textContent = cards.map(c => c.rank + c.suit).join("  ");
+}
+
+function renderBlackjack(data) {
+  showCards("bjPlayer", data.player || []);
+  $("bjPlayerValue").textContent = data.playerValue ?? "";
+  showCards("bjDealer", data.dealer || []);
+
+  $("bjDealerValue").textContent =
+    data.dealerValue == null ? "Очки дилера: скрыты" : "Очки дилера: " + data.dealerValue;
+
+  if (data.finished !== undefined) {
+    blackjackActive = !data.finished;
+  }
+}
+
+async function blackjackAction(action) {
+  try {
+    const data = await api("/api/games/blackjack/" + action, {
+      method: "POST",
+      body: "{}"
+    });
+
+    if (data.player) renderBlackjack(data);
+
+    if (data.finished !== false) {
+      blackjackActive = false;
+      $("blackjackArea").classList.add("hidden");
+      showResult("result-blackjack",
+        `${data.result}\nВыплата: ${money(data.payout)} UZS`,
+        data.payout > 0
       );
-
-      return res.status(201).json({
-        ok: true,
-        requestId: Number(result.lastInsertRowid),
-        gamerId: req.user.gamer_id,
-        amount,
-        status: "pending",
-        message: "Тестовая заявка создана."
-      });
-    } catch (error) {
-      console.error("Top-up request error:", error.message);
-
-      return res.status(500).json({
-        error: "Не удалось создать заявку."
-      });
+      await refreshMe();
+      await refreshHistory();
     }
+  } catch (error) {
+    showResult("result-blackjack", error.message);
   }
-);
+}
 
-// --------------------------------------------------
-// СПИСОК ЗАЯВОК ТЕКУЩЕГО ИГРОКА
-// --------------------------------------------------
+$("blackjackStart").addEventListener("click", async () => {
+  try {
+    if (blackjackActive) throw new Error("Сначала завершите текущий раунд");
 
-app.get(
-  "/api/my-topup-requests",
-  requireLogin,
-  (req, res) => {
-    const requests = db.prepare(`
-      SELECT id, gamer_id, amount, status,
-             created_at, reviewed_at, admin_note
-      FROM topup_requests
-      WHERE user_id = ?
-      ORDER BY id DESC
-      LIMIT 100
-    `).all(req.user.id);
-
-    return res.json({ requests });
-  }
-);
-
-// --------------------------------------------------
-// ВСЕ ЗАЯВКИ ДЛЯ АДМИНИСТРАТОРА
-// --------------------------------------------------
-
-app.get(
-  "/api/admin/topup-requests",
-  requireAdmin,
-  (req, res) => {
-    const requests = db.prepare(`
-      SELECT
-        r.id,
-        r.user_id,
-        u.username,
-        r.gamer_id,
-        r.amount,
-        r.status,
-        r.created_at,
-        r.reviewed_at,
-        r.admin_note
-      FROM topup_requests r
-      JOIN users u ON u.id = r.user_id
-      ORDER BY
-        CASE
-          WHEN r.status = 'pending' THEN 0
-          ELSE 1
-        END,
-        r.id DESC
-      LIMIT 500
-    `).all();
-
-    return res.json({ requests });
-  }
-);
-
-// --------------------------------------------------
-// ПОДТВЕРЖДЕНИЕ ТЕСТОВОЙ ЗАЯВКИ
-// --------------------------------------------------
-
-app.post(
-  "/api/admin/topup-requests/:id/approve",
-  requireAdmin,
-  (req, res) => {
-    const requestId = Number(req.params.id);
-
-    if (
-      !Number.isSafeInteger(requestId) ||
-      requestId < 1
-    ) {
-      return res.status(400).json({
-        error: "Некорректный номер заявки."
-      });
-    }
-
-    try {
-      const approve = db.transaction(() => {
-        const request = db.prepare(`
-          SELECT *
-          FROM topup_requests
-          WHERE id = ?
-        `).get(requestId);
-
-        if (!request) {
-          throw new Error("Заявка не найдена.");
-        }
-
-        if (request.status !== "pending") {
-          throw new Error(
-            "Заявка уже обработана. Повторное зачисление запрещено."
-          );
-        }
-
-        const user = findUserById.get(request.user_id);
-
-        if (!user) {
-          throw new Error("Игрок не найден.");
-        }
-
-        const newBalance = user.balance + request.amount;
-
-        if (!Number.isSafeInteger(newBalance)) {
-          throw new Error("Недопустимая сумма баланса.");
-        }
-
-        const update = db.prepare(`
-          UPDATE topup_requests
-          SET status = 'approved',
-              reviewed_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-            AND status = 'pending'
-        `).run(requestId);
-
-        if (update.changes !== 1) {
-          throw new Error("Заявка уже обработана.");
-        }
-
-        db.prepare(`
-          UPDATE users
-          SET balance = ?
-          WHERE id = ?
-        `).run(newBalance, user.id);
-
-        insertTransaction.run(
-          user.id,
-          "test_topup_approved",
-          request.amount,
-          newBalance
-        );
-
-        return {
-          balance: newBalance,
-          amount: request.amount
-        };
-      });
-
-      const result = approve();
-
-      return res.json({
-        ok: true,
-        balance: result.balance,
-        amount: result.amount,
-        message: "Тестовая заявка подтверждена."
-      });
-    } catch (error) {
-      return res.status(400).json({
-        error: error.message || "Не удалось подтвердить заявку."
-      });
-    }
-  }
-);
-
-// --------------------------------------------------
-// ОТКЛОНЕНИЕ ЗАЯВКИ
-// --------------------------------------------------
-
-app.post(
-  "/api/admin/topup-requests/:id/reject",
-  requireAdmin,
-  (req, res) => {
-    const requestId = Number(req.params.id);
-
-    if (
-      !Number.isSafeInteger(requestId) ||
-      requestId < 1
-    ) {
-      return res.status(400).json({
-        error: "Некорректный номер заявки."
-      });
-    }
-
-    const result = db.prepare(`
-      UPDATE topup_requests
-      SET status = 'rejected',
-          reviewed_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-        AND status = 'pending'
-    `).run(requestId);
-
-    if (result.changes !== 1) {
-      return res.status(400).json({
-        error: "Заявка не найдена или уже обработана."
-      });
-    }
-
-    return res.json({
-      ok: true,
-      message: "Заявка отклонена. Баланс не изменён."
+    const data = await api("/api/games/blackjack/start", {
+      method: "POST",
+      body: JSON.stringify({ bet: Number($("bet-blackjack").value) })
     });
+
+    $("blackjackArea").classList.remove("hidden");
+    renderBlackjack(data);
+
+    if (data.finished !== false) {
+      $("blackjackArea").classList.add("hidden");
+      showResult("result-blackjack", `${data.result}\nВыплата: ${money(data.payout)} UZS`, true);
+      await refreshMe();
+      await refreshHistory();
+    } else {
+      showResult("result-blackjack", "Ваш ход. Выберите действие.", true);
+    }
+
+    await refreshMe();
+  } catch (error) {
+    showResult("result-blackjack", error.message);
   }
-);
-
-// --------------------------------------------------
-// СТАТИЧЕСКИЕ ФАЙЛЫ САЙТА
-// --------------------------------------------------
-
-app.use(express.static(path.join(__dirname, "public")));
-
-// --------------------------------------------------
-// ОБРАБОТКА ОШИБОК
-// --------------------------------------------------
-
-app.use((error, req, res, next) => {
-  console.error("Server error:", error.message);
-
-  if (res.headersSent) {
-    return next(error);
-  }
-
-  return res.status(500).json({
-    error: "Внутренняя ошибка сервера."
-  });
 });
 
-// --------------------------------------------------
-// ЗАПУСК
-// --------------------------------------------------
+$("bjHit").addEventListener("click", () => blackjackAction("hit"));
+$("bjStand").addEventListener("click", () => blackjackAction("stand"));
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`DEPOSIT 2.0 запущен на порту ${PORT}`);
+$("refreshHistory").addEventListener("click", async () => {
+  try {
+    await refreshHistory();
+    await refreshMe();
+  } catch (error) {
+    alert(error.message);
+  }
 });
+
+$("refreshAdmin").addEventListener("click", refreshAdmin);
+
+(async function init() {
+  try {
+    await enterApp();
+  } catch {
+    $("auth").classList.remove("hidden");
+    $("app").classList.add("hidden");
+  }
+})();
+</script>
+</body>
+</html>
