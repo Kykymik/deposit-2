@@ -1,692 +1,1035 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DEPOSIT 2.0 — Игровой клуб</title>
-<style>
-:root{color-scheme:dark;--bg:#0b1020;--panel:#151d31;--gold:#f4c96b;--text:#f4f6ff;--muted:#a9b4ca;--border:#303b54;--green:#3bd69a;--red:#ff737d}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,Arial,sans-serif}
-header{padding:22px 16px;background:#11192a;border-bottom:1px solid var(--border)}
-.wrap{width:min(1000px,94%);margin:auto}
-h1{margin:0;color:var(--gold);font-size:26px}
-.subtitle{color:var(--muted);margin-top:5px}
-main{padding:20px 0 50px}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-input,select,button{font:inherit;border-radius:9px;padding:11px 12px}
-input,select{background:#0d1425;color:var(--text);border:1px solid var(--border);max-width:100%}
-button{border:0;background:var(--gold);color:#17130a;font-weight:700;cursor:pointer}
-button.secondary{background:#26334d;color:var(--text)}
-button.danger{background:#8f303d;color:white}
-button:disabled{opacity:.45;cursor:not-allowed}
-.hidden{display:none!important}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}
-.game{border:1px solid var(--border);background:#11192a;border-radius:14px;padding:16px}
-.game h3{margin-top:0}
-.balance{font-size:26px;color:var(--gold);font-weight:800}
-.muted{color:var(--muted);font-size:14px}
-.result{margin-top:12px;min-height:26px;white-space:pre-wrap}
-.cards{font-size:25px;line-height:1.9;overflow-wrap:anywhere}
-.apple-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.apple-row button{font-size:23px;min-width:54px}
-.good{color:var(--green)}.bad{color:var(--red)}
-a{color:var(--gold)}
-hr{border:0;border-top:1px solid var(--border);margin:16px 0}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{text-align:left;padding:9px;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
-.table-wrap{overflow-x:auto}
-@media(max-width:480px){.panel{padding:13px}input{width:100%}.row button{flex:1}}
-</style>
-</head>
-<body>
-<header>
-<div class="wrap">
-<h1>DEPOSIT 2.0</h1>
-<div class="subtitle">Игровая платформа · демо-режим</div>
-</div>
-</header>
+"use strict";
 
-<main class="wrap">
-<section id="auth" class="panel">
-<h2 id="authTitle">Вход</h2>
-<form id="authForm" class="row">
-<input id="username" placeholder="Логин" minlength="3" maxlength="24" required>
-<input id="password" type="password" placeholder="Пароль (от 8 символов)" minlength="8" required>
-<button id="authSubmit">Войти</button>
-</form>
-<p><button class="secondary" id="toggleAuth" type="button">Создать аккаунт</button></p>
-<div class="result" id="authMessage"></div>
-</section>
+const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 
-<section id="app" class="hidden">
-<div class="panel">
-<div class="row" style="justify-content:space-between">
-<div>
-<div class="muted">Ваш игровой ID</div>
-<strong id="gamerId">—</strong>
-<div class="muted" id="playerName"></div>
-</div>
-<div>
-<div class="muted">Виртуальный баланс</div>
-<div class="balance"><span id="balance">0</span> UZS</div>
-</div>
-<button class="secondary" id="logout">Выйти</button>
-</div>
-<p class="muted">Все ставки и выигрыши в этом режиме виртуальные. Пополнения — тестовые заявки.</p>
-</div>
+const PORT = Number(process.env.PORT) || 3000;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "black";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "ChangeMe123!";
+const SESSION_SECRET = process.env.SESSION_SECRET || "";
 
-<div class="panel">
-<h2>Тестовое пополнение</h2>
-<form id="topupForm" class="row">
-<input id="topupAmount" type="number" min="1000" max="10000000" step="1000" value="50000" required>
-<button>Создать заявку</button>
-</form>
-<div id="topupMessage" class="result"></div>
-<h3>Мои заявки</h3>
-<div id="myRequests" class="muted">Загрузка…</div>
-</div>
+if (
+  process.env.NODE_ENV === "production" &&
+  SESSION_SECRET.length < 32
+) {
+  console.error(
+    "ERROR: Set SESSION_SECRET to a random secret of at least 32 characters."
+  );
+  process.exit(1);
+}
 
-<h2>Игры</h2>
-<div class="grid">
-<article class="game">
-<h3>🍀 Luck</h3>
-<p class="muted">45% шанс получить 2× ставки.</p>
-<input id="bet-luck" type="number" min="100" max="1000000" step="100" value="100">
-<button data-simple="luck">Играть</button>
-<div class="result" id="result-luck"></div>
-</article>
+if (process.env.NODE_ENV === "production" &&
+    ADMIN_PASSWORD === "ChangeMe123!") {
+  console.error(
+    "ERROR: Set a unique ADMIN_PASSWORD in Render environment variables."
+  );
+  process.exit(1);
+}
 
-<article class="game">
-<h3>🪙 Coin</h3>
-<p class="muted">Угадай сторону монеты. Выигрыш 2×.</p>
-<input id="bet-coin" type="number" min="100" max="1000000" step="100" value="100">
-<button data-simple="coin">Подбросить</button>
-<div class="result" id="result-coin"></div>
-</article>
+const PUBLIC_DIR = path.join(__dirname, "public");
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const DATA_FILE = path.join(DATA_DIR, "data.json");
 
-<article class="game">
-<h3>🎯 Challenge</h3>
-<p class="muted">Сложное испытание. Выигрыш 3×.</p>
-<input id="bet-challenge" type="number" min="100" max="1000000" step="100" value="100">
-<button data-simple="challenge">Испытать удачу</button>
-<div class="result" id="result-challenge"></div>
-</article>
+fs.mkdirSync(DATA_DIR, { recursive: true });
 
-<article class="game">
-<h3>🍎 Apple of Fortune</h3>
-<p class="muted">На каждом шаге выбери яблоко, избегая ловушки. Множитель растёт на 0,5× за шаг.</p>
-<input id="bet-apple" type="number" min="100" max="1000000" step="100" value="100">
-<button id="appleStart">Начать</button>
-<div id="appleArea" class="hidden">
-<div class="apple-row">
-<button type="button" data-apple="0">🍎</button>
-<button type="button" data-apple="1">🍎</button>
-<button type="button" data-apple="2">🍎</button>
-</div>
-<p>Шаг: <strong id="appleStep">0</strong> · Множитель: <strong id="appleMultiplier">1×</strong></p>
-<button id="appleCashout" class="secondary">Забрать выигрыш</button>
-</div>
-<div class="result" id="result-apple"></div>
-</article>
+const sessions = new Map();
+const activeGames = new Map();
 
-<article class="game">
-<h3>✈️ Aviator</h3>
-<p class="muted">Забери выплату до падения самолёта. Множитель зависит от времени раунда.</p>
-<input id="bet-aviator" type="number" min="100" max="1000000" step="100" value="100">
-<button id="aviatorStart">Начать полёт</button>
-<div id="aviatorArea" class="hidden">
-<p>Множитель: <strong id="aviatorMultiplier">1.00×</strong></p>
-<button id="aviatorCashout">Забрать выигрыш</button>
-</div>
-<div class="result" id="result-aviator"></div>
-</article>
+function initialDatabase() {
+  return {
+    users: [],
+    transactions: [],
+    topupRequests: [],
+    nextUserId: 1,
+    nextTransactionId: 1,
+    nextRequestId: 1
+  };
+}
 
-<article class="game">
-<h3>🃏 21 очко — Blackjack</h3>
-<p class="muted">Набери 21 или приблизься к ней, не перебрав. Дилер добирает до 17.</p>
-<input id="bet-blackjack" type="number" min="100" max="1000000" step="100" value="100">
-<button id="blackjackStart">Начать раунд</button>
-<div id="blackjackArea" class="hidden">
-<p>Ваши карты: <span id="bjPlayer" class="cards"></span></p>
-<p>Ваши очки: <strong id="bjPlayerValue">0</strong></p>
-<p>Карты дилера: <span id="bjDealer" class="cards"></span></p>
-<p id="bjDealerValue"></p>
-<div class="row">
-<button id="bjHit">Ещё карту</button>
-<button id="bjStand" class="secondary">Хватит</button>
-</div>
-</div>
-<div class="result" id="result-blackjack"></div>
-</article>
-</div>
+function loadDatabase() {
+  try {
+    const db = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 
-<div class="panel" style="margin-top:16px">
-<h2>История операций</h2>
-<button id="refreshHistory" class="secondary">Обновить</button>
-<div id="history" class="table-wrap"></div>
-</div>
+    if (!Array.isArray(db.users) ||
+        !Array.isArray(db.transactions) ||
+        !Array.isArray(db.topupRequests)) {
+      throw new Error("Invalid database format");
+    }
 
-<section id="adminPanel" class="panel hidden">
-<h2>Админ-панель</h2>
-<button id="refreshAdmin">Обновить заявки</button>
-<div id="adminRequests" class="table-wrap"></div>
-<h3>Пользователи</h3>
-<div id="adminUsers" class="table-wrap"></div>
-<div id="adminMessage" class="result"></div>
-</section>
-</section>
-</main>
+    db.nextUserId ||= 1;
+    db.nextTransactionId ||= 1;
+    db.nextRequestId ||= 1;
 
-<script>
-const $ = id => document.getElementById(id);
-let user = null;
-let isRegister = false;
-let appleActive = false;
-let aviatorActive = false;
-let blackjackActive = false;
-let aviatorTimer = null;
+    return db;
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error("Could not read database:", error.message);
+      process.exit(1);
+    }
 
-async function api(url, options = {}) {
-  const response = await fetch(url, {
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options
+    const db = initialDatabase();
+    fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
+    return db;
+  }
+}
+
+const db = loadDatabase();
+
+function saveDatabase() {
+  const temporaryFile = DATA_FILE + ".tmp";
+  fs.writeFileSync(temporaryFile, JSON.stringify(db, null, 2));
+  fs.renameSync(temporaryFile, DATA_FILE);
+}
+
+function makeId() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function makeGamerId() {
+  let id;
+
+  do {
+    id = String(10000000 + crypto.randomInt(90000000));
+  } while (db.users.some(user => user.gamer_id === id));
+
+  return id;
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return { salt, hash };
+}
+
+function checkPassword(password, user) {
+  const actual = crypto.scryptSync(password, user.salt, 64);
+  const expected = Buffer.from(user.password_hash, "hex");
+
+  return expected.length === actual.length &&
+    crypto.timingSafeEqual(actual, expected);
+}
+
+function publicUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    gamer_id: user.gamer_id,
+    balance: user.balance
+  };
+}
+
+function isAdmin(user) {
+  return Boolean(user) &&
+    user.username.toLowerCase() === ADMIN_USERNAME.toLowerCase();
+}
+
+function getSession(req) {
+  const cookie = req.headers.cookie || "";
+  const match = cookie.match(/(?:^|;\s*)sid=([a-f0-9]{64})(?:;|$)/);
+
+  if (!match) return null;
+
+  const session = sessions.get(match[1]);
+
+  if (!session) return null;
+
+  const user = db.users.find(item => item.id === session.userId);
+
+  if (!user) return null;
+
+  return { token: match[1], user };
+}
+
+function setSession(res, user) {
+  const token = makeId();
+
+  sessions.set(token, { userId: user.id });
+
+  const secure = process.env.NODE_ENV === "production"
+    ? "; Secure"
+    : "";
+
+  res.setHeader(
+    "Set-Cookie",
+    `sid=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${secure}`
+  );
+}
+
+function clearSession(req, res) {
+  const session = getSession(req);
+
+  if (session) {
+    sessions.delete(session.token);
+  }
+
+  const secure = process.env.NODE_ENV === "production"
+    ? "; Secure"
+    : "";
+
+  res.setHeader(
+    "Set-Cookie",
+    `sid=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`
+  );
+}
+
+function sendJson(res, status, data) {
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff"
   });
 
-  let data;
-  try { data = await response.json(); }
-  catch { throw new Error("Сервер вернул неверный ответ"); }
-
-  if (!response.ok) throw new Error(data.error || "Ошибка запроса");
-  return data;
+  res.end(JSON.stringify(data));
 }
 
-function showResult(id, text, good = false) {
-  const el = $(id);
-  el.textContent = text;
-  el.className = "result " + (good ? "good" : "bad");
+function fail(res, status, message) {
+  sendJson(res, status, { error: message });
 }
 
-function money(value) {
-  return Number(value || 0).toLocaleString("ru-RU");
-}
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    let size = 0;
 
-async function refreshMe() {
-  const data = await api("/api/me");
-  user = data.user;
-  $("balance").textContent = money(user.balance);
-  $("gamerId").textContent = user.gamer_id;
-  $("playerName").textContent = "Игрок: " + user.username;
-}
+    req.on("data", chunk => {
+      size += chunk.length;
 
-async function refreshRequests() {
-  const data = await api("/api/my-topup-requests");
-
-  if (!data.requests.length) {
-    $("myRequests").textContent = "Заявок пока нет.";
-    return;
-  }
-
-  $("myRequests").innerHTML = "";
-  const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>ID</th><th>Сумма</th><th>Статус</th><th>Дата</th></tr></thead>";
-  const tbody = document.createElement("tbody");
-
-  for (const request of data.requests) {
-    const tr = document.createElement("tr");
-    for (const value of [
-      request.id,
-      money(request.amount) + " UZS",
-      request.status,
-      request.created_at
-    ]) {
-      const td = document.createElement("td");
-      td.textContent = value;
-      tr.appendChild(td);
-    }
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
-  $("myRequests").appendChild(table);
-}
-
-async function refreshHistory() {
-  const data = await api("/api/history");
-  $("history").innerHTML = "";
-
-  const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>Операция</th><th>Сумма</th><th>Баланс после</th><th>Дата</th></tr></thead>";
-  const tbody = document.createElement("tbody");
-
-  for (const item of data.history) {
-    const tr = document.createElement("tr");
-    const values = [
-      item.type,
-      money(item.amount) + " UZS",
-      money(item.balance_after) + " UZS",
-      item.created_at
-    ];
-
-    values.forEach(value => {
-      const td = document.createElement("td");
-      td.textContent = value;
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
-  $("history").appendChild(table);
-}
-
-async function refreshAdmin() {
-  try {
-    await api("/api/admin/me");
-    $("adminPanel").classList.remove("hidden");
-
-    const data = await api("/api/admin/topup-requests");
-    $("adminRequests").innerHTML = "";
-
-    const table = document.createElement("table");
-    table.innerHTML = "<thead><tr><th>ID</th><th>Игрок</th><th>Game ID</th><th>Сумма</th><th>Статус</th><th>Действия</th></tr></thead>";
-    const tbody = document.createElement("tbody");
-
-    for (const r of data.requests) {
-      const tr = document.createElement("tr");
-      const vals = [r.id, r.username, r.gamer_id, money(r.amount) + " UZS", r.status];
-
-      vals.forEach(v => {
-        const td = document.createElement("td");
-        td.textContent = v;
-        tr.appendChild(td);
-      });
-
-      const td = document.createElement("td");
-
-      if (r.status === "pending") {
-        const approve = document.createElement("button");
-        approve.textContent = "Одобрить";
-        approve.addEventListener("click", () => reviewTopup(r.id, "approve"));
-
-        const reject = document.createElement("button");
-        reject.textContent = "Отклонить";
-        reject.className = "danger";
-        reject.style.marginLeft = "6px";
-        reject.addEventListener("click", () => reviewTopup(r.id, "reject"));
-
-        td.append(approve, reject);
-      } else {
-        td.textContent = "Обработана";
-      }
-
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-    }
-
-    table.appendChild(tbody);
-    $("adminRequests").appendChild(table);
-
-    const usersData = await api("/api/admin/users");
-    $("adminUsers").innerHTML = "";
-
-    const usersTable = document.createElement("table");
-    usersTable.innerHTML = "<thead><tr><th>ID</th><th>Логин</th><th>Game ID</th><th>Баланс</th></tr></thead>";
-    const usersBody = document.createElement("tbody");
-
-    for (const u of usersData.users) {
-      const tr = document.createElement("tr");
-
-      [u.id, u.username, u.gamer_id, money(u.balance) + " UZS"].forEach(v => {
-        const td = document.createElement("td");
-        td.textContent = v;
-        tr.appendChild(td);
-      });
-
-      usersBody.appendChild(tr);
-    }
-
-    usersTable.appendChild(usersBody);
-    $("adminUsers").appendChild(usersTable);
-  } catch (error) {
-    $("adminPanel").classList.add("hidden");
-  }
-}
-
-async function reviewTopup(id, action) {
-  try {
-    await api(`/api/admin/topup-requests/${id}/${action}`, { method: "POST", body: "{}" });
-    showResult("adminMessage", "Заявка обработана.", true);
-    await refreshAdmin();
-    await refreshMe();
-    await refreshRequests();
-  } catch (error) {
-    showResult("adminMessage", error.message);
-  }
-}
-
-async function enterApp() {
-  $("auth").classList.add("hidden");
-  $("app").classList.remove("hidden");
-
-  await refreshMe();
-  await refreshRequests();
-  await refreshHistory();
-  await refreshAdmin();
-}
-
-$("toggleAuth").addEventListener("click", () => {
-  isRegister = !isRegister;
-  $("authTitle").textContent = isRegister ? "Регистрация" : "Вход";
-  $("authSubmit").textContent = isRegister ? "Создать аккаунт" : "Войти";
-  $("toggleAuth").textContent = isRegister ? "У меня уже есть аккаунт" : "Создать аккаунт";
-});
-
-$("authForm").addEventListener("submit", async e => {
-  e.preventDefault();
-
-  try {
-    const data = await api(isRegister ? "/api/register" : "/api/login", {
-      method: "POST",
-      body: JSON.stringify({
-        username: $("username").value.trim(),
-        password: $("password").value
-      })
-    });
-
-    user = data.user;
-    $("authMessage").textContent = "";
-    await enterApp();
-  } catch (error) {
-    showResult("authMessage", error.message);
-  }
-});
-
-$("logout").addEventListener("click", async () => {
-  stopAviatorTimer();
-
-  try { await api("/api/logout", { method: "POST", body: "{}" }); }
-  finally {
-    user = null;
-    $("app").classList.add("hidden");
-    $("auth").classList.remove("hidden");
-  }
-});
-
-$("topupForm").addEventListener("submit", async e => {
-  e.preventDefault();
-
-  try {
-    const amount = Number($("topupAmount").value);
-    await api("/api/topup-requests", {
-      method: "POST",
-      body: JSON.stringify({ amount })
-    });
-
-    showResult("topupMessage", "Тестовая заявка создана. Баланс изменится только после одобрения администратором.", true);
-    await refreshRequests();
-  } catch (error) {
-    showResult("topupMessage", error.message);
-  }
-});
-
-document.querySelectorAll("[data-simple]").forEach(button => {
-  button.addEventListener("click", async () => {
-    const game = button.dataset.simple;
-    const bet = Number($("bet-" + game).value);
-
-    try {
-      const data = await api("/api/demo-play", {
-        method: "POST",
-        body: JSON.stringify({ game, bet })
-      });
-
-      showResult("result-" + game, `${data.result}\nВыплата: ${money(data.payout)} UZS`, data.payout > 0);
-      await refreshMe();
-      await refreshHistory();
-    } catch (error) {
-      showResult("result-" + game, error.message);
-    }
-  });
-});
-
-/* Apple */
-
-$("appleStart").addEventListener("click", async () => {
-  try {
-    if (appleActive) throw new Error("Сначала завершите текущую игру");
-
-    const data = await api("/api/games/apple/start", {
-      method: "POST",
-      body: JSON.stringify({ bet: Number($("bet-apple").value) })
-    });
-
-    appleActive = true;
-    $("appleArea").classList.remove("hidden");
-    $("appleStep").textContent = "0";
-    $("appleMultiplier").textContent = "1×";
-    showResult("result-apple", "Выберите одно из трёх яблок.", true);
-    await refreshMe();
-  } catch (error) {
-    showResult("result-apple", error.message);
-  }
-});
-
-document.querySelectorAll("[data-apple]").forEach(button => {
-  button.addEventListener("click", async () => {
-    if (!appleActive) return;
-
-    try {
-      const data = await api("/api/games/apple/pick", {
-        method: "POST",
-        body: JSON.stringify({ choice: Number(button.dataset.apple) })
-      });
-
-      if (data.lost) {
-        appleActive = false;
-        $("appleArea").classList.add("hidden");
-        showResult("result-apple", data.message, false);
-        await refreshMe();
-        await refreshHistory();
+      if (size > 20000) {
+        reject(new Error("Слишком большой запрос"));
+        req.destroy();
         return;
       }
 
-      $("appleStep").textContent = data.game.step;
-      $("appleMultiplier").textContent = data.game.multiplier + "×";
-      showResult("result-apple", "Удачный шаг! Можете рискнуть ещё раз или забрать выигрыш.", true);
-    } catch (error) {
-      showResult("result-apple", error.message);
-    }
-  });
-});
-
-$("appleCashout").addEventListener("click", async () => {
-  try {
-    const data = await api("/api/games/apple/cashout", {
-      method: "POST",
-      body: "{}"
+      body += chunk;
     });
 
-    appleActive = false;
-    $("appleArea").classList.add("hidden");
-    showResult("result-apple", `Вы забрали ${money(data.payout)} UZS (${data.multiplier}×).`, true);
-    await refreshMe();
-    await refreshHistory();
-  } catch (error) {
-    showResult("result-apple", error.message);
-  }
-});
-
-/* Aviator */
-
-function stopAviatorTimer() {
-  if (aviatorTimer) clearInterval(aviatorTimer);
-  aviatorTimer = null;
-}
-
-$("aviatorStart").addEventListener("click", async () => {
-  try {
-    if (aviatorActive) throw new Error("Сначала завершите текущий раунд");
-
-    const data = await api("/api/games/aviator/start", {
-      method: "POST",
-      body: JSON.stringify({ bet: Number($("bet-aviator").value) })
-    });
-
-    aviatorActive = true;
-    $("aviatorArea").classList.remove("hidden");
-    showResult("result-aviator", "Самолёт взлетел. Заберите выигрыш до падения!", true);
-    await refreshMe();
-
-    stopAviatorTimer();
-    aviatorTimer = setInterval(async () => {
-      if (!aviatorActive) return;
+    req.on("end", () => {
+      if (!body) {
+        resolve({});
+        return;
+      }
 
       try {
-        const state = await api("/api/games/aviator/state");
+        const parsed = JSON.parse(body);
 
-        if (state.crashed) {
-          aviatorActive = false;
-          stopAviatorTimer();
-          $("aviatorArea").classList.add("hidden");
-          showResult("result-aviator", `Самолёт упал на ${state.multiplier}×. Ставка потеряна.`);
-          await refreshMe();
-          await refreshHistory();
-        } else {
-          $("aviatorMultiplier").textContent = Number(state.multiplier).toFixed(2) + "×";
+        if (!parsed || typeof parsed !== "object" ||
+            Array.isArray(parsed)) {
+          reject(new Error("Неверный формат данных"));
+          return;
         }
-      } catch (error) {
-        aviatorActive = false;
-        stopAviatorTimer();
-        $("aviatorArea").classList.add("hidden");
-        showResult("result-aviator", error.message);
-      }
-    }, 200);
-  } catch (error) {
-    showResult("result-aviator", error.message);
-  }
-});
 
-$("aviatorCashout").addEventListener("click", async () => {
-  try {
-    const data = await api("/api/games/aviator/cashout", {
-      method: "POST",
-      body: "{}"
+        resolve(parsed);
+      } catch {
+        reject(new Error("Некорректный JSON"));
+      }
     });
 
-    aviatorActive = false;
-    stopAviatorTimer();
-    $("aviatorArea").classList.add("hidden");
+    req.on("error", reject);
+  });
+}
 
-    showResult("result-aviator",
-      data.crashed
-        ? "Самолёт уже упал. Ставка потеряна."
-        : `Вы забрали ${money(data.payout)} UZS (${Number(data.multiplier).toFixed(2)}×).`,
-      !data.crashed
+function requireUser(session, res) {
+  if (!session) {
+    fail(res, 401, "Сначала войдите в аккаунт");
+    return null;
+  }
+
+  return session.user;
+}
+
+function requireAdmin(user, res) {
+  if (!user || !isAdmin(user)) {
+    fail(res, 403, "Доступ разрешён только администратору");
+    return false;
+  }
+
+  return true;
+}
+
+function addTransaction(user, type, amount) {
+  db.transactions.push({
+    id: db.nextTransactionId++,
+    user_id: user.id,
+    type,
+    amount,
+    balance_after: user.balance,
+    created_at: new Date().toISOString()
+  });
+
+  saveDatabase();
+}
+
+function validBet(value) {
+  return Number.isSafeInteger(value) &&
+    value >= 100 &&
+    value <= 1000000;
+}
+
+function getBet(body, res) {
+  const bet = body.bet;
+
+  if (!validBet(bet)) {
+    fail(res, 400, "Ставка должна быть от 100 до 1 000 000 UZS");
+    return null;
+  }
+
+  return bet;
+}
+
+function debit(user, bet, res) {
+  if (user.balance < bet) {
+    fail(res, 400, "Недостаточно виртуальных средств");
+    return false;
+  }
+
+  user.balance -= bet;
+  return true;
+}
+
+function finishGame(user, type, payout) {
+  payout = Math.max(0, Math.floor(payout));
+
+  user.balance += payout;
+
+  addTransaction(user, type, payout);
+
+  return payout;
+}
+
+function gameKey(user, game) {
+  return `${user.id}:${game}`;
+}
+
+function activeGame(user, game) {
+  return activeGames.get(gameKey(user, game));
+}
+
+function randomCard() {
+  const ranks = [
+    "2", "3", "4", "5", "6", "7", "8", "9", "10",
+    "J", "Q", "K", "A"
+  ];
+
+  const suits = ["♠", "♥", "♦", "♣"];
+
+  return {
+    rank: ranks[crypto.randomInt(ranks.length)],
+    suit: suits[crypto.randomInt(suits.length)]
+  };
+}
+
+function cardValue(card) {
+  if (["J", "Q", "K"].includes(card.rank)) return 10;
+  if (card.rank === "A") return 11;
+  return Number(card.rank);
+}
+
+function handValue(cards) {
+  let total = cards.reduce((sum, card) => sum + cardValue(card), 0);
+  let aces = cards.filter(card => card.rank === "A").length;
+
+  while (total > 21 && aces > 0) {
+    total -= 10;
+    aces--;
+  }
+
+  return total;
+}
+
+function publicBlackjack(game, finished = false, result = null, payout = 0) {
+  return {
+    player: game.player,
+    playerValue: handValue(game.player),
+    dealer: finished ? game.dealer : [game.dealer[0]],
+    dealerValue: finished ? handValue(game.dealer) : null,
+    finished,
+    result,
+    payout
+  };
+}
+
+function finishBlackjack(user, game, result, payout) {
+  activeGames.delete(gameKey(user, "blackjack"));
+
+  payout = finishGame(user, "blackjack", payout);
+
+  return {
+    ...publicBlackjack(game, true, result, payout),
+    result,
+    payout
+  };
+}
+
+async function handleApi(req, res, url) {
+  const route = url.pathname;
+  const method = req.method;
+  const session = getSession(req);
+
+  let body = {};
+
+  if (["POST", "PUT", "PATCH"].includes(method)) {
+    try {
+      body = await readBody(req);
+    } catch (error) {
+      return fail(res, 400, error.message);
+    }
+  }
+
+  // Регистрация
+  if (route === "/api/register" && method === "POST") {
+    const username = String(body.username || "").trim();
+    const password = String(body.password || "");
+
+    if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+      return fail(res, 400,
+        "Логин: от 3 до 24 символов, латинские буквы, цифры и _");
+    }
+
+    if (password.length < 8 || password.length > 128) {
+      return fail(res, 400, "Пароль должен содержать от 8 до 128 символов");
+    }
+
+    if (username.toLowerCase() === ADMIN_USERNAME.toLowerCase()) {
+      return fail(res, 400, "Этот логин зарезервирован");
+    }
+
+    if (db.users.some(u =>
+      u.username.toLowerCase() === username.toLowerCase())) {
+      return fail(res, 409, "Такой логин уже существует");
+    }
+
+    const credentials = hashPassword(password);
+
+    const user = {
+      id: db.nextUserId++,
+      username,
+      gamer_id: makeGamerId(),
+      balance: 0,
+      salt: credentials.salt,
+      password_hash: credentials.hash,
+      created_at: new Date().toISOString()
+    };
+
+    db.users.push(user);
+    saveDatabase();
+    setSession(res, user);
+
+    return sendJson(res, 201, { user: publicUser(user) });
+  }
+
+  // Вход
+  if (route === "/api/login" && method === "POST") {
+    const username = String(body.username || "").trim();
+    const password = String(body.password || "");
+
+    if (username.length > 24 || password.length > 128) {
+      return fail(res, 400, "Неверный логин или пароль");
+    }
+
+    let user = db.users.find(u =>
+      u.username.toLowerCase() === username.toLowerCase());
+
+    // Учётная запись администратора создаётся при первом входе.
+    if (!user &&
+        username.toLowerCase() === ADMIN_USERNAME.toLowerCase() &&
+        password === ADMIN_PASSWORD) {
+      const credentials = hashPassword(password);
+
+      user = {
+        id: db.nextUserId++,
+        username: ADMIN_USERNAME,
+        gamer_id: makeGamerId(),
+        balance: 0,
+        salt: credentials.salt,
+        password_hash: credentials.hash,
+        created_at: new Date().toISOString()
+      };
+
+      db.users.push(user);
+      saveDatabase();
+    }
+
+    if (!user || !checkPassword(password, user)) {
+      return fail(res, 401, "Неверный логин или пароль");
+    }
+
+    setSession(res, user);
+
+    return sendJson(res, 200, { user: publicUser(user) });
+  }
+
+  // Выход
+  if (route === "/api/logout" && method === "POST") {
+    clearSession(req, res);
+    return sendJson(res, 200, { ok: true });
+  }
+
+  // Текущий пользователь
+  if (route === "/api/me" && method === "GET") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    return sendJson(res, 200, { user: publicUser(user) });
+  }
+
+  // История операций
+  if (route === "/api/history" && method === "GET") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    const history = db.transactions
+      .filter(t => t.user_id === user.id)
+      .slice(-100)
+      .reverse();
+
+    return sendJson(res, 200, { history });
+  }
+
+  // Создание тестовой заявки
+  if (route === "/api/topup-requests" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    if (!Number.isSafeInteger(body.amount) ||
+        body.amount < 1000 ||
+        body.amount > 10000000 ||
+        body.amount % 1000 !== 0) {
+      return fail(res, 400, "Укажите сумму от 1 000 до 10 000 000 UZS");
+    }
+
+    const request = {
+      id: db.nextRequestId++,
+      user_id: user.id,
+      amount: body.amount,
+      status: "pending",
+      created_at: new Date().toISOString()
+    };
+
+    db.topupRequests.push(request);
+    saveDatabase();
+
+    return sendJson(res, 201, { request });
+  }
+
+  // Список заявок игрока
+  if (route === "/api/my-topup-requests" && method === "GET") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    const requests = db.topupRequests
+      .filter(r => r.user_id === user.id)
+      .slice()
+      .reverse();
+
+    return sendJson(res, 200, { requests });
+  }
+
+  // Администратор
+  if (route === "/api/admin/me" && method === "GET") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    if (!requireAdmin(user, res)) return;
+
+    return sendJson(res, 200, { admin: true });
+  }
+
+  if (route === "/api/admin/users" && method === "GET") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    if (!requireAdmin(user, res)) return;
+
+    return sendJson(res, 200, {
+      users: db.users.map(publicUser)
+    });
+  }
+
+  if (route === "/api/admin/topup-requests" && method === "GET") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    if (!requireAdmin(user, res)) return;
+
+    const requests = db.topupRequests
+      .slice()
+      .reverse()
+      .map(request => {
+        const owner = db.users.find(u => u.id === request.user_id);
+
+        return {
+          ...request,
+          username: owner ? owner.username : "Неизвестный",
+          gamer_id: owner ? owner.gamer_id : "—"
+        };
+      });
+
+    return sendJson(res, 200, { requests });
+  }
+
+  const reviewMatch = route.match(
+    /^\/api\/admin\/topup-requests\/(\d+)\/(approve|reject)$/
+  );
+
+  if (reviewMatch && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    if (!requireAdmin(user, res)) return;
+
+    const request = db.topupRequests.find(
+      r => r.id === Number(reviewMatch[1])
     );
 
-    await refreshMe();
-    await refreshHistory();
-  } catch (error) {
-    showResult("result-aviator", error.message);
-  }
-});
-
-/* Blackjack */
-
-function showCards(id, cards) {
-  $(id).textContent = cards.map(c => c.rank + c.suit).join("  ");
-}
-
-function renderBlackjack(data) {
-  showCards("bjPlayer", data.player || []);
-  $("bjPlayerValue").textContent = data.playerValue ?? "";
-  showCards("bjDealer", data.dealer || []);
-
-  $("bjDealerValue").textContent =
-    data.dealerValue == null ? "Очки дилера: скрыты" : "Очки дилера: " + data.dealerValue;
-
-  if (data.finished !== undefined) {
-    blackjackActive = !data.finished;
-  }
-}
-
-async function blackjackAction(action) {
-  try {
-    const data = await api("/api/games/blackjack/" + action, {
-      method: "POST",
-      body: "{}"
-    });
-
-    if (data.player) renderBlackjack(data);
-
-    if (data.finished !== false) {
-      blackjackActive = false;
-      $("blackjackArea").classList.add("hidden");
-      showResult("result-blackjack",
-        `${data.result}\nВыплата: ${money(data.payout)} UZS`,
-        data.payout > 0
-      );
-      await refreshMe();
-      await refreshHistory();
+    if (!request) {
+      return fail(res, 404, "Заявка не найдена");
     }
-  } catch (error) {
-    showResult("result-blackjack", error.message);
-  }
-}
 
-$("blackjackStart").addEventListener("click", async () => {
-  try {
-    if (blackjackActive) throw new Error("Сначала завершите текущий раунд");
+    if (request.status !== "pending") {
+      return fail(res, 409, "Заявка уже обработана");
+    }
 
-    const data = await api("/api/games/blackjack/start", {
-      method: "POST",
-      body: JSON.stringify({ bet: Number($("bet-blackjack").value) })
-    });
+    const owner = db.users.find(u => u.id === request.user_id);
 
-    $("blackjackArea").classList.remove("hidden");
-    renderBlackjack(data);
+    if (!owner) {
+      return fail(res, 404, "Игрок не найден");
+    }
 
-    if (data.finished !== false) {
-      $("blackjackArea").classList.add("hidden");
-      showResult("result-blackjack", `${data.result}\nВыплата: ${money(data.payout)} UZS`, true);
-      await refreshMe();
-      await refreshHistory();
+    if (reviewMatch[2] === "approve") {
+      request.status = "approved";
+      owner.balance += request.amount;
+      addTransaction(owner, "test_topup", request.amount);
     } else {
-      showResult("result-blackjack", "Ваш ход. Выберите действие.", true);
+      request.status = "rejected";
+      saveDatabase();
     }
 
-    await refreshMe();
-  } catch (error) {
-    showResult("result-blackjack", error.message);
+    return sendJson(res, 200, {
+      ok: true,
+      request
+    });
   }
-});
 
-$("bjHit").addEventListener("click", () => blackjackAction("hit"));
-$("bjStand").addEventListener("click", () => blackjackAction("stand"));
+  // Три простые демо-игры
+  if (route === "/api/demo-play" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
 
-$("refreshHistory").addEventListener("click", async () => {
-  try {
-    await refreshHistory();
-    await refreshMe();
-  } catch (error) {
-    alert(error.message);
+    const game = String(body.game || "");
+    const allowed = ["luck", "coin", "challenge"];
+
+    if (!allowed.includes(game)) {
+      return fail(res, 400, "Неизвестная игра");
+    }
+
+    const bet = getBet(body, res);
+    if (bet === null) return;
+
+    if (!debit(user, bet, res)) return;
+
+    let win = false;
+    let multiplier = 2;
+
+    if (game === "luck") {
+      win = crypto.randomInt(100) < 45;
+    } else if (game === "coin") {
+      win = crypto.randomInt(2) === 0;
+    } else {
+      win = crypto.randomInt(3) === 0;
+      multiplier = 3;
+    }
+
+    const payout = finishGame(user, game, win ? bet * multiplier : 0);
+
+    return sendJson(res, 200, {
+      result: win ? "Вы выиграли!" : "В этот раз не повезло.",
+      payout,
+      balance: user.balance
+    });
   }
-});
 
-$("refreshAdmin").addEventListener("click", refreshAdmin);
+  // Apple of Fortune: виртуальная игра
+  if (route === "/api/games/apple/start" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
 
-(async function init() {
+    if (activeGame(user, "apple")) {
+      return fail(res, 409, "Завершите текущую игру");
+    }
+
+    const bet = getBet(body, res);
+    if (bet === null) return;
+
+    if (!debit(user, bet, res)) return;
+
+    const trap = crypto.randomInt(3);
+
+    activeGames.set(gameKey(user, "apple"), {
+      bet,
+      trap,
+      step: 0,
+      multiplier: 1.5
+    });
+
+    saveDatabase();
+
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (route === "/api/games/apple/pick" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    const game = activeGame(user, "apple");
+    if (!game) return fail(res, 400, "Сначала начните игру");
+
+    if (![0, 1, 2].includes(body.choice)) {
+      return fail(res, 400, "Выберите одно из трёх яблок");
+    }
+
+    if (body.choice === game.trap) {
+      activeGames.delete(gameKey(user, "apple"));
+
+      finishGame(user, "apple_loss", 0);
+
+      return sendJson(res, 200, {
+        lost: true,
+        message: "Ловушка! Виртуальная ставка потеряна."
+      });
+    }
+
+    game.step++;
+    game.multiplier = Math.pow(1.5, game.step + 1);
+
+    return sendJson(res, 200, {
+      lost: false,
+      game: {
+        step: game.step,
+        multiplier: Number(game.multiplier.toFixed(2))
+      }
+    });
+  }
+
+  if (route === "/api/games/apple/cashout" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    const game = activeGame(user, "apple");
+    if (!game || game.step < 1) {
+      return fail(res, 400, "Сначала успешно выберите яблоко");
+    }
+
+    activeGames.delete(gameKey(user, "apple"));
+
+    const payout = finishGame(
+      user,
+      "apple_win",
+      Math.floor(game.bet * game.multiplier)
+    );
+
+    return sendJson(res, 200, {
+      payout,
+      multiplier: Number(game.multiplier.toFixed(2))
+    });
+  }
+
+  // Aviator: виртуальный раунд
+  if (route === "/api/games/aviator/start" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    if (activeGame(user, "aviator")) {
+      return fail(res, 409, "Завершите текущий раунд");
+    }
+
+    const bet = getBet(body, res);
+    if (bet === null) return;
+
+    if (!debit(user, bet, res)) return;
+
+    activeGames.set(gameKey(user, "aviator"), {
+      bet,
+      started: Date.now(),
+      crashAt: 1.2 + crypto.randomInt(280) / 100
+    });
+
+    saveDatabase();
+
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (route === "/api/games/aviator/state" && method === "GET") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    const game = activeGame(user, "aviator");
+    if (!game) return fail(res, 400, "Активный полёт не найден");
+
+    const elapsed = (Date.now() - game.started) / 1000;
+    const multiplier = Math.exp(elapsed * 0.12);
+    const crashed = multiplier >= game.crashAt;
+
+    if (crashed) {
+      activeGames.delete(gameKey(user, "aviator"));
+      finishGame(user, "aviator_loss", 0);
+    }
+
+    return sendJson(res, 200, {
+      crashed,
+      multiplier: Number(
+        Math.min(multiplier, game.crashAt).toFixed(2)
+      )
+    });
+  }
+
+  if (route === "/api/games/aviator/cashout" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    const game = activeGame(user, "aviator");
+    if (!game) return fail(res, 400, "Активный полёт не найден");
+
+    const multiplier = Math.exp((Date.now() - game.started) / 1000 * 0.12);
+
+    activeGames.delete(gameKey(user, "aviator"));
+
+    if (multiplier >= game.crashAt) {
+      finishGame(user, "aviator_loss", 0);
+
+      return sendJson(res, 200, {
+        crashed: true,
+        multiplier: Number(game.crashAt.toFixed(2)),
+        payout: 0
+      });
+    }
+
+    const payout = finishGame(
+      user,
+      "aviator_win",
+      Math.floor(game.bet * multiplier)
+    );
+
+    return sendJson(res, 200, {
+      crashed: false,
+      multiplier: Number(multiplier.toFixed(2)),
+      payout
+    });
+  }
+
+  // Blackjack
+  if (route === "/api/games/blackjack/start" && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    if (activeGame(user, "blackjack")) {
+      return fail(res, 409, "Завершите текущий раунд");
+    }
+
+    const bet = getBet(body, res);
+    if (bet === null) return;
+
+    if (!debit(user, bet, res)) return;
+
+    const game = {
+      bet,
+      player: [randomCard(), randomCard()],
+      dealer: [randomCard(), randomCard()]
+    };
+
+    activeGames.set(gameKey(user, "blackjack"), game);
+
+    const playerScore = handValue(game.player);
+    const dealerScore = handValue(game.dealer);
+
+    if (playerScore === 21 || dealerScore === 21) {
+      if (playerScore === dealerScore) {
+        return sendJson(
+          res,
+          200,
+          finishBlackjack(user, game, "Ничья!", bet)
+        );
+      }
+
+      if (playerScore === 21) {
+        return sendJson(
+          res,
+          200,
+          finishBlackjack(user, game, "Blackjack! Вы выиграли!", bet * 2)
+        );
+      }
+
+      return sendJson(
+        res,
+        200,
+        finishBlackjack(user, game, "У дилера 21. Вы проиграли.", 0)
+      );
+    }
+
+    return sendJson(res, 200, publicBlackjack(game));
+  }
+
+  const blackjackAction = route.match(
+    /^\/api\/games\/blackjack\/(hit|stand)$/
+  );
+
+  if (blackjackAction && method === "POST") {
+    const user = requireUser(session, res);
+    if (!user) return;
+
+    const game = activeGame(user, "blackjack");
+    if (!game) return fail(res, 400, "Активный раунд не найден");
+
+    if (blackjackAction[1] === "hit") {
+      game.player.push(randomCard());
+
+      if (handValue(game.player) > 21) {
+        return sendJson(
+          res,
+          200,
+          finishBlackjack(user, game, "Перебор! Вы проиграли.", 0)
+        );
+      }
+
+      if (handValue(game.player) === 21) {
+        while (handValue(game.dealer) < 17) {
+          game.dealer.push(randomCard());
+        }
+
+        const p = handValue(game.player);
+        const d = handValue(game.dealer);
+
+        if (d > 21 || p > d) {
+          return sendJson(
+            res, 200, finishBlackjack(user, game, "Вы выиграли!", game.bet * 2)
+          );
+        }
+
+        if (p === d) {
+          return sendJson(
+            res, 200, finishBlackjack(user, game, "Ничья!", game.bet)
+          );
+        }
+
+        return sendJson(
+          res, 200, finishBlackjack(user, game, "Дилер выиграл.", 0)
+        );
+      }
+
+      return sendJson(res, 200, publicBlackjack(game));
+    }
+
+    while (handValue(game.dealer) < 17) {
+      game.dealer.push(randomCard());
+    }
+
+    const playerScore = handValue(game.player);
+    const dealerScore = handValue(game.dealer);
+
+    if (dealerScore > 21 || playerScore > dealerScore) {
+      return sendJson(
+        res, 200, finishBlackjack(user, game, "Вы выиграли!", game.bet * 2)
+      );
+    }
+
+    if (playerScore === dealerScore) {
+      return sendJson(
+        res, 200, finishBlackjack(user, game, "Ничья!", game.bet)
+      );
+    }
+
+    return sendJson(
+      res, 200, finishBlackjack(user, game, "Дилер выиграл.", 0)
+    );
+  }
+
+  return fail(res, 404, "Маршрут не найден");
+}
+
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon"
+};
+
+function serveStatic(req, res, url) {
+  let pathname;
+
   try {
-    await enterApp();
+    pathname = decodeURIComponent(url.pathname);
   } catch {
-    $("auth").classList.remove("hidden");
-    $("app").classList.add("hidden");
+    return fail(res, 400, "Неверный адрес");
   }
-})();
-</script>
-</body>
-</html>
+
+  if (pathname === "/") {
+    pathname = "/index.html";
+  }
+
+  const filename = path.resolve(PUBLIC_DIR, "." + pathname);
+
+  if (!filename.startsWith(PUBLIC_DIR + path.sep)) {
+    return fail(res, 403, "Доступ запрещён");
+  }
+
+  fs.readFile(filename, (error, content) => {
+    if (error) {
+      return fail(res, 404, "Файл не найден");
+    }
+
+    res.writeHead(200, {
+      "Content-Type":
+        MIME_TYPES[path.extname(filename).toLowerCase()] ||
+        "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "same-origin"
+    });
+
+    res.end(content);
+  });
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "same-origin");
+
+  try {
+    if (url.pathname.startsWith("/api/")) {
+      if (!["GET", "POST"].includes(req.method)) {
+        res.setHeader("Allow", "GET, POST");
+        return fail(res, 405, "Метод не поддерживается");
+      }
+
+      await handleApi(req, res, url);
+      return;
+    }
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.setHeader("Allow", "GET, HEAD");
+      return fail(res, 405, "Метод не поддерживается");
+    }
+
+    serveStatic(req, res, url);
+  } catch (error) {
+    console.error("Request error:", error);
+
+    if (!res.headersSent) {
+      fail(res, 500, "Внутренняя ошибка сервера");
+    } else {
+      res.end();
+    }
+  }
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`DEPOSIT 2.0 server started on port ${PORT}`);
+  console.log(`Admin username: ${ADMIN_USERNAME}`);
+});
