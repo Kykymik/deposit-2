@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
@@ -17,154 +17,151 @@
       --green: #55d6a0;
       --red: #ff7474;
     }
+* { box-sizing: border-box; }
 
-    * { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, #22202a 0, var(--bg) 55%);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
 
-    body {
-      margin: 0;
-      background:
-        radial-gradient(ellipse at top, #22202a 0, var(--bg) 55%);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      min-height: 100vh;
-    }
+button, input { font: inherit; }
 
-    button, input { font: inherit; }
+button {
+  min-height: 46px;
+  padding: 11px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #202633;
+  color: var(--text);
+  cursor: pointer;
+}
 
-    button {
-      min-height: 46px;
-      padding: 11px 16px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #202633;
-      color: var(--text);
-      cursor: pointer;
-    }
+button:disabled { opacity: .55; cursor: wait; }
 
-    button:disabled { opacity: .55; cursor: wait; }
+.primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #17130a;
+  font-weight: 800;
+}
 
-    .primary {
-      background: var(--gold);
-      border-color: var(--gold);
-      color: #17130a;
-      font-weight: 800;
-    }
+.wrap { width: min(960px, 100%); margin: auto; padding: 18px; }
 
-    .wrap { width: min(960px, 100%); margin: auto; padding: 18px; }
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 22px;
+  border-bottom: 1px solid var(--line);
+}
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 8px 0 22px;
-      border-bottom: 1px solid var(--line);
-    }
+.logo { font-size: 23px; font-weight: 950; letter-spacing: 1px; }
+.logo span { color: var(--gold); }
+.badge { color: var(--gold); font-size: 11px; letter-spacing: 1.5px; }
 
-    .logo { font-size: 23px; font-weight: 950; letter-spacing: 1px; }
-    .logo span { color: var(--gold); }
-    .badge { color: var(--gold); font-size: 11px; letter-spacing: 1.5px; }
+.panel {
+  background: rgba(20, 24, 33, .96);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  margin-top: 18px;
+}
 
-    .panel {
-      background: rgba(20, 24, 33, .96);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 20px;
-      margin-top: 18px;
-    }
+h1, h2 { margin-top: 0; }
+h1 { font-size: clamp(25px, 6vw, 40px); }
+h2 { font-size: 19px; }
+p { color: var(--muted); line-height: 1.55; }
 
-    h1, h2, h3 { margin-top: 0; }
-    h1 { font-size: clamp(25px, 6vw, 40px); }
-    h2 { font-size: 19px; }
-    p { color: var(--muted); line-height: 1.55; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
+.balance {
+  font-size: clamp(32px, 8vw, 48px);
+  font-weight: 900;
+  color: var(--gold);
+  overflow-wrap: anywhere;
+}
 
-    .balance {
-      font-size: clamp(32px, 8vw, 48px);
-      font-weight: 900;
-      color: var(--gold);
-      overflow-wrap: anywhere;
-    }
+.label {
+  display: block;
+  margin: 13px 0 7px;
+  color: var(--muted);
+  font-size: 13px;
+}
 
-    .label {
-      display: block;
-      margin: 13px 0 7px;
-      color: var(--muted);
-      font-size: 13px;
-    }
+input {
+  display: block;
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  background: #0c1017;
+  color: var(--text);
+  padding: 12px;
+  border-radius: 11px;
+  font-size: 16px;
+}
 
-    input {
-      display: block;
-      width: 100%;
-      min-height: 46px;
-      border: 1px solid var(--line);
-      background: #0c1017;
-      color: var(--text);
-      padding: 12px;
-      border-radius: 11px;
-      font-size: 16px;
-    }
+.actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 13px; }
+.actions button { flex: 1 1 120px; }
 
-    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 13px; }
-    .actions button { flex: 1 1 120px; }
+.games {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
 
-    .games {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
+.game {
+  text-align: center;
+  padding: 17px 8px;
+  background: #1a202c;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
 
-    .game {
-      text-align: center;
-      padding: 17px 8px;
-      background: #1a202c;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-    }
+.game .emoji { display: block; font-size: 30px; margin-bottom: 9px; }
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+  font-size: 14px;
+}
 
-    .game .emoji { display: block; font-size: 30px; margin-bottom: 9px; }
+.history-item:last-child { border-bottom: 0; }
+.positive { color: var(--green); }
+.negative, .error { color: var(--red); }
+.muted { color: var(--muted); font-size: 12px; }
+.notice { color: var(--gold); font-size: 12px; }
+.success { color: var(--green); }
+.message { min-height: 24px; overflow-wrap: anywhere; }
+.hidden { display: none !important; }
 
-    .history-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      border-bottom: 1px solid var(--line);
-      padding: 12px 0;
-      font-size: 14px;
-    }
+footer {
+  padding: 24px 0 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
 
-    .history-item:last-child { border-bottom: 0; }
-    .positive { color: var(--green); }
-    .negative { color: var(--red); }
-    .muted { color: var(--muted); font-size: 12px; }
-    .notice { color: var(--gold); font-size: 12px; }
-    .error { color: var(--red); min-height: 20px; }
-    .success { color: var(--green); min-height: 20px; }
-    .hidden { display: none !important; }
-
-    footer {
-      padding: 24px 0 12px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 560px) {
-      .wrap { padding: 13px; }
-      .grid { grid-template-columns: 1fr; }
-      .panel { padding: 16px; }
-      .games { gap: 7px; }
-      .game { font-size: 12px; }
-      header { align-items: flex-start; }
-    }
-  </style>
+@media (max-width: 560px) {
+  .wrap { padding: 13px; }
+  .grid { grid-template-columns: 1fr; }
+  .panel { padding: 16px; }
+  .games { gap: 7px; }
+  .game { font-size: 12px; }
+  header { align-items: flex-start; }
+}
+      </style>
 </head>
 <body>
   <main class="wrap">
@@ -175,113 +172,111 @@
       </div>
       <div id="headerUser" class="muted">Гостевой режим</div>
     </header>
+<section id="authPanel" class="panel">
+  <h1>Твоя игровая зона</h1>
+  <p>Создай аккаунт и получи 100 000 виртуальных кредитов для знакомства с демоверсией.</p>
 
-    <section id="authPanel" class="panel">
-      <h1>Твоя игровая зона</h1>
-      <p>Создай аккаунт и получи 100 000 виртуальных кредитов для знакомства с демоверсией.</p>
-
-      <div class="grid">
-        <form id="loginForm">
-          <h2>Вход</h2>
-          <label class="label" for="loginName">Имя пользователя</label>
-          <input id="loginName" name="username" required minlength="3" maxlength="20" autocomplete="username">
-          <label class="label" for="loginPassword">Пароль</label>
-          <input id="loginPassword" name="password" type="password" required maxlength="72" autocomplete="current-password">
-          <div class="actions">
-            <button class="primary" type="submit">Войти</button>
-          </div>
-        </form>
-
-        <form id="registerForm">
-          <h2>Регистрация</h2>
-          <label class="label" for="registerName">Придумай имя</label>
-          <input id="registerName" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username">
-          <label class="label" for="registerPassword">Придумай пароль</label>
-          <input id="registerPassword" name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
-          <div class="actions">
-            <button class="primary" type="submit">Создать аккаунт</button>
-          </div>
-        </form>
+  <div class="grid">
+    <form id="loginForm">
+      <h2>Вход</h2>
+      <label class="label" for="loginName">Имя пользователя</label>
+      <input id="loginName" name="username" required minlength="3" maxlength="20" autocomplete="username">
+      <label class="label" for="loginPassword">Пароль</label>
+      <input id="loginPassword" name="password" type="password" required maxlength="72" autocomplete="current-password">
+      <div class="actions">
+        <button class="primary" type="submit">Войти</button>
       </div>
-      <p id="authMessage" class="error" role="status" aria-live="polite"></p>
-    </section>
+    </form>
 
-    <section id="dashboard" class="hidden">
-      <div class="panel">
-        <p>ТВОЙ ДЕМО-БАЛАНС</p>
-        <div id="balance" class="balance">0</div>
-        <p>Виртуальные кредиты · Не имеют денежной стоимости</p>
-        <div class="actions">
-          <button id="topupBtn" class="primary" type="button">+ 10 000 демо-кредитов</button>
-          <button id="logoutBtn" type="button">Выйти</button>
-        </div>
-        <p id="dashboardMessage" role="status" aria-live="polite"></p>
+    <form id="registerForm">
+      <h2>Регистрация</h2>
+      <label class="label" for="registerName">Придумай имя</label>
+      <input id="registerName" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username">
+      <label class="label" for="registerPassword">Придумай пароль</label>
+      <input id="registerPassword" name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
+      <div class="actions">
+        <button class="primary" type="submit">Создать аккаунт</button>
       </div>
+    </form>
+  </div>
+  <p id="authMessage" class="message" role="status" aria-live="polite"></p>
+</section>
 
-      <div class="panel">
-        <h2>🎮 Демо-игры</h2>
-        <p>Выбери ставку. Все результаты относятся исключительно к виртуальным кредитам.</p>
-        <label class="label" for="bet">Ставка (1–1000)</label>
-        <input id="bet" type="number" min="1" max="1000" step="1" value="100">
-        <div class="games" style="margin-top:14px">
-          <button class="game playBtn" data-game="Слот" type="button">
-            <span class="emoji">🎰</span>Слот
-          </button>
-          <button class="game playBtn" data-game="Риск" type="button">
-            <span class="emoji">🎲</span>Риск
-          </button>
-          <button class="game playBtn" data-game="Удача" type="button">
-            <span class="emoji">🍀</span>Удача
-          </button>
-        </div>
-        <p id="gameMessage" role="status" aria-live="polite"></p>
-        <div class="notice">Демо-игра: выигрыш определяется сервером случайным образом. Денежных выплат нет.</div>
-      </div>
+<section id="dashboard" class="hidden">
+  <div class="panel">
+    <p>ТВОЙ ДЕМО-БАЛАНС</p>
+    <div id="balance" class="balance">0</div>
+    <p>Виртуальные кредиты · Не имеют денежной стоимости</p>
+    <div class="actions">
+      <button id="topupBtn" class="primary" type="button">+ 10 000 демо-кредитов</button>
+      <button id="logoutBtn" type="button">Выйти</button>
+    </div>
+    <p id="dashboardMessage" class="message" role="status" aria-live="polite"></p>
+  </div>
 
-      <div class="panel">
-        <h2>📊 История операций</h2>
-        <div id="history"><p>Загрузка...</p></div>
-      </div>
-    </section>
+  <div class="panel">
+    <h2>🎮 Демо-игры</h2>
+    <p>Все результаты относятся исключительно к виртуальным кредитам.</p>
+    <label class="label" for="bet">Ставка (1–1000)</label>
+    <input id="bet" type="number" min="1" max="1000" step="1" value="100">
+    <div class="games" style="margin-top:14px">
+      <button class="game playBtn" data-game="Слот" type="button"><span class="emoji">🎰</span>Слот</button>
+      <button class="game playBtn" data-game="Риск" type="button"><span class="emoji">🎲</span>Риск</button>
+      <button class="game playBtn" data-game="Удача" type="button"><span class="emoji">🍀</span>Удача</button>
+    </div>
+    <p id="gameMessage" class="message" role="status" aria-live="polite"></p>
+    <div class="notice">Демо-игра: денежные выплаты отсутствуют.</div>
+  </div>
 
-    <footer>
-      DEPOSIT 2.0 · DEMO MODE<br>
-      Только виртуальные кредиты. Пополнения банковской картой и денежные выплаты не поддерживаются.
-    </footer>
+  <div class="panel">
+    <h2>📊 История операций</h2>
+    <div id="history"><p>Загрузка...</p></div>
+  </div>
+</section>
+
+<footer>
+  DEPOSIT 2.0 · DEMO MODE<br>
+  Только виртуальные кредиты. Банковские пополнения и денежные выплаты не поддерживаются.
+</footer>
   </main>
-
   <script>
     "use strict";
 
     const $ = (selector) => document.querySelector(selector);
-    let currentUser = null;
     let busy = false;
+    let currentUser = null;
 
-    const money = (n) => Number(n).toLocaleString("ru-RU");
+    const money = (value) => Number(value).toLocaleString("ru-RU");
+
+    function message(selector, text, error = false) {
+      const element = $(selector);
+      element.textContent = text;
+      element.className = "message " + (error ? "error" : "success");
+    }
 
     async function api(url, options = {}) {
-      const response = await fetch(url, {
-        credentials: "same-origin",
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {})
-        }
-      });
+      let response;
+
+      try {
+        response = await fetch(url, {
+          credentials: "same-origin",
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          }
+        });
+      } catch {
+        throw new Error("Не удалось связаться с сервером. Обнови страницу и попробуй ещё раз.");
+      }
 
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.error || "Произошла ошибка.");
+        throw new Error(data.error || `Ошибка сервера (${response.status}).`);
       }
 
       return data;
-    }
-
-    function showMessage(selector, text, isError = false) {
-      const element = $(selector);
-      element.textContent = text;
-      element.className = isError ? "error" : "success";
     }
 
     function setBusy(value) {
@@ -293,7 +288,6 @@
 
     function renderUser(user) {
       currentUser = user;
-
       $("#authPanel").classList.toggle("hidden", Boolean(user));
       $("#dashboard").classList.toggle("hidden", !user);
       $("#headerUser").textContent = user ? user.username : "Гостевой режим";
@@ -307,9 +301,10 @@
     async function refreshMe() {
       try {
         const data = await api("/api/me");
-        renderUser(data.user);
-      } catch {
+        renderUser(data.user || null);
+      } catch (error) {
         renderUser(null);
+        message("#authMessage", error.message, true);
       }
     }
 
@@ -319,7 +314,7 @@
         const container = $("#history");
         container.replaceChildren();
 
-        if (!data.items || data.items.length === 0) {
+        if (!Array.isArray(data.items) || data.items.length === 0) {
           container.textContent = "Операций пока нет.";
           return;
         }
@@ -341,14 +336,13 @@
 
           const date = document.createElement("div");
           date.className = "muted";
-          date.textContent = item.created_at;
+          date.textContent = item.created_at || "";
 
           left.append(title, date);
 
           const amount = document.createElement("strong");
           amount.className = item.amount >= 0 ? "positive" : "negative";
-          amount.textContent =
-            (item.amount > 0 ? "+" : "") + money(item.amount);
+          amount.textContent = (item.amount > 0 ? "+" : "") + money(item.amount);
 
           row.append(left, amount);
           container.append(row);
@@ -363,24 +357,33 @@
       if (busy) return;
 
       const form = event.currentTarget;
-      const formData = new FormData(form);
 
+      if (!form.reportValidity()) return;
+
+      const formData = new FormData(form);
       setBusy(true);
-      showMessage("#authMessage", "");
+      message("#authMessage", "Отправляем запрос...");
 
       try {
         const data = await api(endpoint, {
           method: "POST",
           body: JSON.stringify({
-            username: formData.get("username"),
-            password: formData.get("password")
+            username: String(formData.get("username") || "").trim(),
+            password: String(formData.get("password") || "")
           })
         });
 
-        renderUser(data.user);
+        if (!data.user) {
+          throw new Error("Сервер ответил без данных пользователя. Проверь логи Render.");
+        }
+
         form.reset();
+        renderUser(data.user);
+        message("#dashboardMessage", endpoint === "/api/register"
+          ? "Аккаунт создан! Добро пожаловать."
+          : "Вход выполнен.");
       } catch (error) {
-        showMessage("#authMessage", error.message, true);
+        message("#authMessage", error.message, true);
       } finally {
         setBusy(false);
       }
@@ -401,9 +404,9 @@
       try {
         await api("/api/logout", { method: "POST", body: "{}" });
         renderUser(null);
-        showMessage("#authMessage", "Ты вышел из аккаунта.");
+        message("#authMessage", "Ты вышел из аккаунта.");
       } catch (error) {
-        showMessage("#dashboardMessage", error.message, true);
+        message("#dashboardMessage", error.message, true);
       } finally {
         setBusy(false);
       }
@@ -419,12 +422,12 @@
           body: JSON.stringify({ amount: 10000 })
         });
 
-        currentUser.balance = data.balance;
         $("#balance").textContent = money(data.balance);
-        showMessage("#dashboardMessage", data.message);
+        if (currentUser) currentUser.balance = data.balance;
+        message("#dashboardMessage", data.message || "Демо-баланс обновлён.");
         await loadHistory();
       } catch (error) {
-        showMessage("#dashboardMessage", error.message, true);
+        message("#dashboardMessage", error.message, true);
       } finally {
         setBusy(false);
       }
@@ -435,14 +438,13 @@
         if (busy) return;
 
         const bet = Number($("#bet").value);
-
         if (!Number.isSafeInteger(bet) || bet < 1 || bet > 1000) {
-          showMessage("#gameMessage", "Укажи ставку от 1 до 1000.", true);
+          message("#gameMessage", "Укажи ставку от 1 до 1000.", true);
           return;
         }
 
         setBusy(true);
-        showMessage("#gameMessage", "Играем...");
+        message("#gameMessage", "Играем...");
 
         try {
           const data = await api("/api/demo-play", {
@@ -450,21 +452,14 @@
             body: JSON.stringify({ bet })
           });
 
-          currentUser.balance = data.balance;
+          if (currentUser) currentUser.balance = data.balance;
           $("#balance").textContent = money(data.balance);
 
-          const outcome = data.won
-            ? "🎉 Демо-выигрыш: "
-            : "Попробуй ещё раз. Изменение баланса: ";
-
-          showMessage(
-            "#gameMessage",
-            outcome + (data.change > 0 ? "+" : "") + money(data.change)
-          );
-
+          const text = data.won ? "Демо-выигрыш: " : "Демо-результат: ";
+          message("#gameMessage", text + (data.change > 0 ? "+" : "") + money(data.change));
           await loadHistory();
         } catch (error) {
-          showMessage("#gameMessage", error.message, true);
+          message("#gameMessage", error.message, true);
         } finally {
           setBusy(false);
         }
@@ -475,3 +470,4 @@
   </script>
 </body>
 </html>
+:::
