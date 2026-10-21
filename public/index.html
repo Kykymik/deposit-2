@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b12">
+  <title>DEPOSIT 2.0 — Игровой клуб</title>
+  <style>
+    :root {
+      --bg: #090b12;
+      --panel: #121622;
+      --panel2: #191f2d;
+      --gold: #f4c76b;
+      --gold2: #ffe5a3;
+      --text: #f6f7fb;
+      --muted: #929bad;
+      --line: rgba(255,255,255,.09);
+      --green: #5ce0a0;
+      --red: #ff7786;
+    }
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at top, #222039 0, var(--bg) 48%);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  min-height: 100vh;
+}
+
+button, input { font: inherit; }
+button { cursor: pointer; }
+
+.wrap {
+  width: min(100% - 28px, 760px);
+  margin: 0 auto;
+  padding-bottom: 45px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 23px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+}
+
+.brand span { color: var(--gold); }
+
+.demo-tag {
+  color: var(--gold2);
+  border: 1px solid #9d783c;
+  background: #352916;
+  border-radius: 20px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .7px;
+}
+
+.hero {
+  padding: 34px 0 23px;
+}
+
+.eyebrow {
+  color: var(--gold);
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(30px, 8vw, 48px);
+  line-height: 1.08;
+  margin: 12px 0;
+  letter-spacing: -1.5px;
+}
+
+h1 span { color: var(--gold); }
+
+.sub {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 14px;
+  max-width: 490px;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: rgba(18,22,34,.94);
+  border-radius: 20px;
+  padding: 21px;
+  margin-top: 17px;
+}
+
+.panel h2 {
+  margin: 0 0 17px;
+  font-size: 19px;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 5px;
+  background: #090c13;
+  border-radius: 12px;
+}
+
+.tab {
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  border-radius: 9px;
+  padding: 12px 5px;
+  font-weight: 700;
+}
+
+.tab.active {
+  background: var(--panel2);
+  color: var(--gold2);
+}
+
+label {
+  display: block;
+  color: #cbd1dd;
+  font-size: 13px;
+  margin: 14px 0 8px;
+}
+
+input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 14px;
+  color: white;
+  background: #0b0e16;
+  border: 1px solid #303748;
+  border-radius: 11px;
+  outline: none;
+  font-size: 16px;
+}
+
+input:focus { border-color: var(--gold); }
+
+.btn {
+  width: 100%;
+  min-height: 47px;
+  border: 0;
+  border-radius: 11px;
+  padding: 13px 16px;
+  font-weight: 800;
+  transition: opacity .15s;
+}
+
+.btn:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.primary {
+  margin-top: 19px;
+  color: #201707;
+  background: linear-gradient(100deg, var(--gold), var(--gold2));
+}
+
+.secondary {
+  color: var(--text);
+  background: #252c3d;
+  border: 1px solid #363e52;
+}
+
+.message {
+  margin-top: 13px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.message.error { color: var(--red); }
+.message.success { color: var(--green); }
+
+.hidden { display: none !important; }
+
+.balance-card {
+  background:
+    radial-gradient(ellipse at top right, #5a4725, transparent 60%),
+    linear-gradient(135deg, #252034, #151925);
+  border: 1px solid #72582f;
+  border-radius: 18px;
+  padding: 23px;
+}
+
+.balance-label {
+  color: #d2c5a9;
+  font-size: 13px;
+}
+
+.balance-value {
+  margin: 10px 0 6px;
+  font-size: clamp(32px, 9vw, 44px);
+  font-weight: 900;
+  overflow-wrap: anywhere;
+  letter-spacing: -1px;
+}
+
+.balance-note {
+  color: var(--gold2);
+  font-size: 12px;
+}
+
+.account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.username {
+  color: var(--gold2);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.small-btn {
+  color: #d5dbea;
+  background: #252c3d;
+  border: 1px solid #394156;
+  padding: 9px 12px;
+  border-radius: 9px;
+}
+
+.topup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.amount-btn {
+  min-height: 47px;
+  background: #202637;
+  color: var(--gold2);
+  border: 1px solid #454056;
+  border-radius: 10px;
+  font-weight: 800;
+  padding: 8px 3px;
+  font-size: 13px;
+}
+
+.games {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.game {
+  background: linear-gradient(145deg, #202638, #141824);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 17px 13px;
+  min-width: 0;
+}
+
+.game-icon { font-size: 32px; }
+
+.game h3 {
+  margin: 12px 0 7px;
+  font-size: 15px;
+}
+
+.game p {
+  min-height: 34px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+.game .btn { font-size: 12px; padding: 11px 6px; }
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 13px 0;
+  font-size: 13px;
+}
+
+.history-item:last-child { border-bottom: 0; }
+
+.history-name { overflow-wrap: anywhere; }
+.history-date {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.positive { color: var(--green); }
+.negative { color: var(--red); }
+
+.notice {
+  padding: 13px;
+  background: #1c1a19;
+  border: 1px solid #5c4930;
+  border-radius: 12px;
+  color: #dfd0b5;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+footer {
+  color: #788195;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 25px 0;
+}
+
+@media (max-width: 380px) {
+  .wrap { width: calc(100% - 20px); }
+  .panel { padding: 15px; }
+  .games { gap: 8px; }
+}
+      </div>
+  <script>
+    "use strict";
+
+    const $ = (selector) => document.querySelector(selector);
+
+    let authMode = "login";
+    let currentUser = null;
+    let busy = false;
+
+    const authPanel = $("#authPanel");
+    const dashboard = $("#dashboard");
+    const authForm = $("#authForm");
+    const authSubmit = $("#authSubmit");
+    const authMessage = $("#authMessage");
+
+    function showMessage(element, message, type = "") {
+      element.textContent = message;
+      element.className = "message" + (type ? " " + type : "");
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 0
+      }).format(Number(value) || 0);
+    }
+
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Ошибка запроса. Попробуй ещё раз.");
+      }
+
+      return data;
+    }
+
+    function setMode(mode) {
+      authMode = mode;
+      const login = mode === "login";
+
+      $("#loginTab").classList.toggle("active", login);
+      $("#registerTab").classList.toggle("active", !login);
+      authSubmit.textContent = login ? "Войти в аккаунт" : "Создать аккаунт";
+      $("#password").autocomplete = login ? "current-password" : "new-password";
+      showMessage(authMessage, "");
+    }
+
+    $("#loginTab").addEventListener("click", () => setMode("login"));
+    $("#registerTab").addEventListener("click", () => setMode("register"));
+
+    function displayUser(user) {
+      currentUser = user;
+
+      if (!user) {
+        authPanel.classList.remove("hidden");
+        dashboard.classList.add("hidden");
+        return;
+      }
+
+      authPanel.classList.add("hidden");
+      dashboard.classList.remove("hidden");
+      $("#userName").textContent = user.username;
+      $("#balance").textContent = formatNumber(user.balance);
+    }
+
+    async function refreshMe() {
+      const data = await api("/api/me");
+      displayUser(data.user || null);
+
+      if (data.user) {
+        await refreshHistory();
+      }
+    }
+
+    authForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (busy) return;
+      busy = true;
+      authSubmit.disabled = true;
+      showMessage(authMessage, "Подождите…");
+
+      const username = $("#username").value.trim();
+      const password = $("#password").value;
+
+      try {
+        const endpoint = authMode === "login"
+          ? "/api/login"
+          : "/api/register";
+
+        const data = await api(endpoint, {
+          method: "POST",
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!data.user) {
+          throw new Error("Сервер не вернул данные аккаунта.");
+        }
+
+        displayUser(data.user);
+        $("#password").value = "";
+        showMessage(authMessage, "");
+        await refreshHistory();
+      } catch (error) {
+        showMessage(authMessage, error.message, "error");
+      } finally {
+        busy = false;
+        authSubmit.disabled = false;
+      }
+    });
+
+    $("#logoutBtn").addEventListener("click", async () => {
+      try {
+        await api("/api/logout", { method: "POST", body: "{}" });
+        displayUser(null);
+        setMode("login");
+        showMessage(authMessage, "Ты вышел из аккаунта.", "success");
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    async function topup(amount) {
+      if (!currentUser) return;
+
+      showMessage($("#topupMessage"), "Обрабатываем демо-операцию…");
+
+      try {
+        const data = await api("/api/demo-topup", {
+          method: "POST",
+          body: JSON.stringify({ amount })
+        });
+
+        $("#balance").textContent = formatNumber(data.balance);
+        showMessage($("#topupMessage"), data.message, "success");
+        await refreshHistory();
+      } catch (error) {
+        showMessage($("#topupMessage"), error.message, "error");
+      }
+    }
+
+    document.querySelectorAll("[data-amount]").forEach((button) => {
+      button.addEventListener("click", () => {
+        topup(Number(button.dataset.amount));
+      });
+    });
+
+    async function play(bet) {
+      if (!currentUser) return;
+
+      showMessage($("#gameMessage"), "Играем…");
+
+      try {
+        const data = await api("/api/demo-play", {
+          method: "POST",
+          body: JSON.stringify({ bet })
+        });
+
+        $("#balance").textContent = formatNumber(data.balance);
+
+        const result = data.won
+          ? "Демо-выигрыш: +" + formatNumber(data.change) + " кредитов."
+          : "Демо-проигрыш: " + formatNumber(data.change) + " кредитов.";
+
+        showMessage($("#gameMessage"), result, data.won ? "success" : "error");
+        await refreshHistory();
+      } catch (error) {
+        showMessage($("#gameMessage"), error.message, "error");
+      }
+    }
+
+    document.querySelectorAll(".playBtn").forEach((button) => {
+      button.addEventListener("click", () => {
+        play(Number(button.dataset.bet));
+      });
+    });
+
+    const transactionNames = {
+      demo_credit: "Демо-пополнение",
+      DEMO_WIN: "Демо-выигрыш",
+      DEMO_LOSS: "Демо-проигрыш"
+    };
+
+    async function refreshHistory() {
+      const container = $("#history");
+
+      try {
+        const data = await api("/api/history");
+        container.replaceChildren();
+
+        if (!data.items || data.items.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "message";
+          empty.textContent = "Операций пока нет.";
+          container.appendChild(empty);
+          return;
+        }
+
+        data.items.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "history-item";
+
+          const left = document.createElement("div");
+          left.className = "history-name";
+
+          const title = document.createElement("div");
+          title.textContent = transactionNames[item.type] || "Операция";
+
+          const date = document.createElement("span");
+          date.className = "history-date";
+          date.textContent = item.created_at;
+
+          left.append(title, date);
+
+          const right = document.createElement("div");
+          const positive = Number(item.amount) >= 0;
+          right.className = positive ? "positive" : "negative";
+          right.textContent = (positive ? "+" : "") +
+            formatNumber(item.amount);
+
+          row.append(left, right);
+          container.appendChild(row);
+        });
+      } catch (error) {
+        showMessage(container, error.message, "error");
+      }
+    }
+
+    $("#refreshHistory").addEventListener("click", refreshHistory);
+
+    refreshMe().catch((error) => {
+      displayUser(null);
+      showMessage(
+        authMessage,
+        "Сайт пока не подключён к работающему серверу. " +
+        error.message,
+        "error"
+      );
+    });
+  </scri
+</body>
+</html>
+:::
