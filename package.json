@@ -1,8 +1,8 @@
 {
   "name": "deposit-2",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "DEPOSIT 2.0 server application",
+  "description": "DEPOSIT 2.0 demo casino application",
   "scripts": {
     "start": "node server.js"
   },
