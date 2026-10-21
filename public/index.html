@@ -314,6 +314,7 @@ footer{text-align:center;padding:24px;color:var(--muted);font-size:12px}
 const $=id=>document.getElementById(id);
 const state={
   user:null,admin:false,aviatorTimer:null,aviatorBusy:false,
+  aviatorGeneration:0,aviatorRoundActive:false,aviatorCashoutPending:false,
   appleActive:false,appleRow:0,blackjackActive:false,
   receiptData:null,expandedGame:null
 };
@@ -575,75 +576,210 @@ function validateBet(input){
   return value;
 }
 
-/* Aviator */
+/* Aviator — исправленная логика опроса и вывода выигрыша */
 function stopAviatorPolling(){
-  if(state.aviatorTimer)clearTimeout(state.aviatorTimer);
-  state.aviatorTimer=null;state.aviatorBusy=false;
+  if(state.aviatorTimer!==null){
+    clearTimeout(state.aviatorTimer);
+    state.aviatorTimer=null;
+  }
+  // Инвалидируем все старые запросы опроса.
+  state.aviatorGeneration++;
+  state.aviatorRoundActive=false;
+  state.aviatorCashoutPending=false;
+  state.aviatorBusy=false;
 }
+
 function aviatorAnimation(mode){
   const stage=$('aviatorStage');
   stage.classList.remove('flying','crashed','won');
   if(mode)stage.classList.add(mode);
 }
-function scheduleAviatorPoll(){
-  if(!state.user||state.aviatorBusy)return;
+
+function scheduleAviatorPoll(generation=state.aviatorGeneration){
+  if(!state.user||!state.aviatorRoundActive||
+     state.aviatorCashoutPending||generation!==state.aviatorGeneration||
+     state.aviatorTimer!==null)return;
+
   state.aviatorTimer=setTimeout(async()=>{
-    if(!state.user||state.aviatorBusy)return;
+    state.aviatorTimer=null;
+
+    if(!state.user||!state.aviatorRoundActive||
+       state.aviatorCashoutPending||generation!==state.aviatorGeneration||
+       state.aviatorBusy)return;
+
     state.aviatorBusy=true;
     let shouldContinue=false;
+
     try{
       const data=await api('/api/games/aviator/state');
+
+      // Игнорируем ответ от предыдущего раунда или устаревшего запроса.
+      if(generation!==state.aviatorGeneration||!state.user)return;
+
       if(!data.active){
-        stopAviatorPolling();
-        aviatorAnimation(data.status==='crashed'?'crashed':'');
-        $('aviatorCashout').disabled=true;$('aviatorStart').disabled=false;
+        state.aviatorRoundActive=false;
+        $('aviatorCashout').disabled=true;
+        $('aviatorStart').disabled=false;
+
         if(data.status==='crashed'){
-          $('aviatorMultiplier').textContent=Number(data.crashMultiplier||1).toFixed(2)+'x';
+          aviatorAnimation('crashed');
+          $('aviatorMultiplier').textContent=
+            Number(data.crashMultiplier||1).toFixed(2)+'x';
           $('aviatorStatus').textContent='Самолёт улетел!';
-        }else $('aviatorStatus').textContent='Полёт завершён.';
+        }else{
+          aviatorAnimation('');
+          $('aviatorStatus').textContent='Полёт завершён.';
+        }
+
         if(data.balance!==undefined)updateBalance(data.balance);
-        await loadHistory();return;
+        await loadHistory().catch(()=>{});
+        return;
       }
-      $('aviatorMultiplier').textContent=Number(data.multiplier).toFixed(2)+'x';
+
+      $('aviatorMultiplier').textContent=
+        Number(data.multiplier||1).toFixed(2)+'x';
       $('aviatorStatus').textContent='Самолёт в полёте';
+
       if(data.balance!==undefined)updateBalance(data.balance);
       shouldContinue=true;
     }catch(error){
-      $('aviatorStatus').textContent=error.message;
-      shouldContinue=!$('aviatorCashout').disabled;
-    }finally{state.aviatorBusy=false}
-    if(shouldContinue&&state.user&&!$('aviatorCashout').disabled)scheduleAviatorPoll();
+      if(generation===state.aviatorGeneration){
+        $('aviatorStatus').textContent=error.message;
+        shouldContinue=state.aviatorRoundActive&&
+          !state.aviatorCashoutPending;
+      }
+    }finally{
+      state.aviatorBusy=false;
+    }
+
+    if(shouldContinue&&generation===state.aviatorGeneration&&
+       state.aviatorRoundActive&&!state.aviatorCashoutPending){
+      scheduleAviatorPoll(generation);
+    }
   },350);
 }
+
 $('aviatorStart').addEventListener('click',async()=>{
+  if(!state.user||state.aviatorRoundActive||state.aviatorBusy)return;
+
+  $('aviatorStart').disabled=true;
+  $('aviatorCashout').disabled=true;
+
   try{
-    const data=await post('/api/games/aviator/start',{bet:validateBet('aviatorBet')});
+    const bet=validateBet('aviatorBet');
+    const data=await post('/api/games/aviator/start',{bet});
+
+    if(!state.user)return;
+
     updateBalance(data.balance);
-    $('aviatorStart').disabled=true;$('aviatorCashout').disabled=false;
+
+    // Начинаем новый раунд и отделяем его от старых запросов.
+    if(state.aviatorTimer!==null)clearTimeout(state.aviatorTimer);
+    state.aviatorTimer=null;
+    state.aviatorGeneration++;
+    const generation=state.aviatorGeneration;
+
+    state.aviatorRoundActive=true;
+    state.aviatorCashoutPending=false;
+    state.aviatorBusy=false;
+
+    $('aviatorStart').disabled=true;
+    $('aviatorCashout').disabled=false;
     $('aviatorStatus').textContent='Полёт начался!';
     $('aviatorMultiplier').textContent='1.00x';
-    aviatorAnimation('flying');stopAviatorPolling();scheduleAviatorPoll();
-    await loadHistory();
-  }catch(error){showMessage(error.message,true)}
+    aviatorAnimation('flying');
+
+    scheduleAviatorPoll(generation);
+    await loadHistory().catch(()=>{});
+  }catch(error){
+    $('aviatorStart').disabled=false;
+    $('aviatorCashout').disabled=true;
+    showMessage(error.message,true);
+  }
 });
+
 $('aviatorCashout').addEventListener('click',async()=>{
-  if(state.aviatorBusy)return;
-  stopAviatorPolling();$('aviatorCashout').disabled=true;
+  if(!state.user||!state.aviatorRoundActive||
+     state.aviatorCashoutPending)return;
+
+  // Блокируем новые запросы состояния на время вывода выигрыша.
+  state.aviatorCashoutPending=true;
+  state.aviatorRoundActive=false;
+
+  if(state.aviatorTimer!==null){
+    clearTimeout(state.aviatorTimer);
+    state.aviatorTimer=null;
+  }
+
+  const generation=state.aviatorGeneration;
+  $('aviatorCashout').disabled=true;
+  $('aviatorStart').disabled=true;
+  $('aviatorStatus').textContent='Забираем выигрыш…';
+
   try{
     const data=await post('/api/games/aviator/cashout');
+
+    if(!state.user||generation!==state.aviatorGeneration)return;
+
     updateBalance(data.balance);
-    $('aviatorMultiplier').textContent=Number(data.multiplier).toFixed(2)+'x';
+    $('aviatorMultiplier').textContent=
+      Number(data.multiplier||1).toFixed(2)+'x';
     $('aviatorStatus').textContent='Выигрыш: '+money(data.payout);
-    aviatorAnimation('won');$('aviatorStart').disabled=false;
-    await loadHistory();
+    aviatorAnimation('won');
+
+    state.aviatorCashoutPending=false;
+    state.aviatorRoundActive=false;
+    $('aviatorStart').disabled=false;
+    $('aviatorCashout').disabled=true;
+
+    await loadHistory().catch(()=>{});
   }catch(error){
-    $('aviatorStatus').textContent=error.message;$('aviatorStart').disabled=false;
+    if(!state.user||generation!==state.aviatorGeneration)return;
+
+    $('aviatorStatus').textContent=error.message;
+
+    // Проверяем сервер, чтобы определить, завершился ли раунд.
     try{
       const data=await api('/api/games/aviator/state');
+
+      if(!state.user||generation!==state.aviatorGeneration)return;
+
       if(data.active){
-        $('aviatorCashout').disabled=false;aviatorAnimation('flying');scheduleAviatorPoll();
-      }else if(data.balance!==undefined)updateBalance(data.balance);
-    }catch{}
+        state.aviatorRoundActive=true;
+        state.aviatorCashoutPending=false;
+        $('aviatorCashout').disabled=false;
+        $('aviatorStart').disabled=true;
+        aviatorAnimation('flying');
+        scheduleAviatorPoll(generation);
+      }else{
+        state.aviatorRoundActive=false;
+        state.aviatorCashoutPending=false;
+        $('aviatorCashout').disabled=true;
+        $('aviatorStart').disabled=false;
+
+        if(data.status==='crashed'){
+          aviatorAnimation('crashed');
+          $('aviatorMultiplier').textContent=
+            Number(data.crashMultiplier||1).toFixed(2)+'x';
+          $('aviatorStatus').textContent='Самолёт улетел!';
+        }else{
+          aviatorAnimation('');
+          $('aviatorStatus').textContent='Полёт завершён.';
+        }
+
+        if(data.balance!==undefined)updateBalance(data.balance);
+        await loadHistory().catch(()=>{});
+      }
+    }catch(stateError){
+      // Если сервер временно недоступен, не запускаем второй раунд
+      // и не отправляем повторный запрос на вывод автоматически.
+      state.aviatorRoundActive=false;
+      state.aviatorCashoutPending=false;
+      $('aviatorStart').disabled=false;
+      $('aviatorCashout').disabled=true;
+      $('aviatorStatus').textContent=
+        'Не удалось проверить состояние раунда. Обнови страницу и проверь баланс.';
+    }
   }
 });
 
