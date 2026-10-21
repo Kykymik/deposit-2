@@ -16,9 +16,16 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const SESSION_SECRET = process.env.SESSION_SECRET;
+const ADMIN_USERNAME = String(
+  process.env.ADMIN_USERNAME || ""
+).trim().toLowerCase();
 
 if (IS_PRODUCTION && (!SESSION_SECRET || SESSION_SECRET.length < 32)) {
-  throw new Error("Set SESSION_SECRET to a random secret of at least 32 characters.");
+  throw new Error("SESSION_SECRET must contain at least 32 characters.");
+}
+
+if (IS_PRODUCTION && !ADMIN_USERNAME) {
+  throw new Error("Set ADMIN_USERNAME in Render Environment.");
 }
 
 const sessionSecret =
@@ -52,16 +59,21 @@ db.exec(`
   );
 `);
 
-const findUser = db.prepare(
-  "SELECT id, username, password_hash, balance FROM users WHERE username = ?"
-);
+const getUser = db.prepare(`
+  SELECT id, username, balance
+  FROM users
+  WHERE id = ?
+`);
 
-const getUser = db.prepare(
-  "SELECT id, username, balance FROM users WHERE id = ?"
-);
+const findUser = db.prepare(`
+  SELECT id, username, password_hash, balance
+  FROM users
+  WHERE username = ?
+`);
 
 const addTransaction = db.prepare(`
-  INSERT INTO transactions (user_id, type, amount, balance_after)
+  INSERT INTO transactions
+    (user_id, type, amount, balance_after)
   VALUES (?, ?, ?, ?)
 `);
 
@@ -75,49 +87,45 @@ const getHistory = db.prepare(`
 
 app.disable("x-powered-by");
 
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        frameAncestors: ["'none'"]
-      }
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+
+      // index.html содержит встроенный JavaScript.
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"]
     }
-  })
-);
+  }
+}));
 
 app.use(express.json({ limit: "10kb" }));
 
-app.use(
-  session({
-    name: "deposit.sid",
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: IS_PRODUCTION,
-      maxAge: 1000 * 60 * 60 * 24
-    }
-  })
-);
+app.use(session({
+  name: "deposit.sid",
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: IS_PRODUCTION,
+    maxAge: 1000 * 60 * 60 * 24
+  }
+}));
 
-app.use(
-  "/api",
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 150,
-    standardHeaders: "draft-7",
-    legacyHeaders: false
-  })
-);
+app.use("/api", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 150,
+  standardHeaders: "draft-7",
+  legacyHeaders: false
+}));
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -125,22 +133,6 @@ const authLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false
 });
-
-function requireLogin(req, res, next) {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Сначала войдите в аккаунт." });
-  }
-
-  const user = getUser.get(req.session.userId);
-
-  if (!user) {
-    req.session.destroy(() => {});
-    return res.status(401).json({ error: "Аккаунт не найден." });
-  }
-
-  req.user = user;
-  next();
-}
 
 function publicUser(user) {
   return {
@@ -150,11 +142,60 @@ function publicUser(user) {
   };
 }
 
+function requireLogin(req, res, next) {
+  if (!req.session.userId) {
+    return res.status(401).json({
+      error: "Сначала войдите в аккаунт."
+    });
+  }
+
+  const user = getUser.get(req.session.userId);
+
+  if (!user) {
+    return req.session.destroy(() => {
+      res.status(401).json({ error: "Аккаунт не найден." });
+    });
+  }
+
+  req.user = user;
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.session.userId) {
+    return res.status(401).json({
+      error: "Сначала войдите в аккаунт."
+    });
+  }
+
+  const user = getUser.get(req.session.userId);
+
+  if (!user) {
+    return res.status(401).json({
+      error: "Аккаунт не найден."
+    });
+  }
+
+  if (
+    !ADMIN_USERNAME ||
+    user.username.toLowerCase() !== ADMIN_USERNAME
+  ) {
+    return res.status(403).json({
+      error: "Нет доступа к панели администратора."
+    });
+  }
+
+  req.user = user;
+  next();
+}
+
 function saveLogin(req, res, user) {
   req.session.regenerate((err) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: "Ошибка создания сессии." });
+      return res.status(500).json({
+        error: "Ошибка создания сессии."
+      });
     }
 
     req.session.userId = user.id;
@@ -162,7 +203,9 @@ function saveLogin(req, res, user) {
     req.session.save((saveError) => {
       if (saveError) {
         console.error(saveError);
-        return res.status(500).json({ error: "Не удалось сохранить сессию." });
+        return res.status(500).json({
+          error: "Не удалось сохранить сессию."
+        });
       }
 
       res.json({ user: publicUser(user) });
@@ -170,10 +213,12 @@ function saveLogin(req, res, user) {
   });
 }
 
+// Проверка сервера
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, mode: "DEMO" });
 });
 
+// Текущий пользователь
 app.get("/api/me", (req, res) => {
   if (!req.session.userId) {
     return res.json({ user: null });
@@ -181,26 +226,36 @@ app.get("/api/me", (req, res) => {
 
   const user = getUser.get(req.session.userId);
 
-  if (!user) {
-    return res.json({ user: null });
-  }
-
-  res.json({ user: publicUser(user) });
+  res.json({ user: user ? publicUser(user) : null });
 });
 
+// Регистрация
 app.post("/api/register", authLimiter, async (req, res) => {
   const username = String(req.body.username || "").trim();
   const password = String(req.body.password || "");
 
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
     return res.status(400).json({
-      error: "Имя: 3–20 символов, только латинские буквы, цифры и _."
+      error: "Имя: 3–20 символов, латинские буквы, цифры и _."
     });
   }
 
   if (password.length < 8 || password.length > 72) {
     return res.status(400).json({
       error: "Пароль должен содержать от 8 до 72 символов."
+    });
+  }
+
+  // Не позволяем повторно регистрировать имя администратора.
+  // Если оно уже занято, обычная проверка уникальности БД
+  // также не позволит создать второй аккаунт.
+  if (
+    ADMIN_USERNAME &&
+    username.toLowerCase() === ADMIN_USERNAME &&
+    findUser.get(username)
+  ) {
+    return res.status(409).json({
+      error: "Это имя пользователя уже занято."
     });
   }
 
@@ -220,9 +275,7 @@ app.post("/api/register", authLimiter, async (req, res) => {
       return getUser.get(id);
     });
 
-    const user = createUser();
-
-    saveLogin(req, res, user);
+    saveLogin(req, res, createUser());
   } catch (error) {
     if (String(error.code || "").includes("SQLITE_CONSTRAINT")) {
       return res.status(409).json({
@@ -231,22 +284,30 @@ app.post("/api/register", authLimiter, async (req, res) => {
     }
 
     console.error(error);
-    res.status(500).json({ error: "Не удалось создать аккаунт." });
+    res.status(500).json({
+      error: "Не удалось создать аккаунт."
+    });
   }
 });
 
+// Вход
 app.post("/api/login", authLimiter, async (req, res) => {
   const username = String(req.body.username || "").trim();
   const password = String(req.body.password || "");
 
   if (username.length > 20 || password.length > 72) {
-    return res.status(400).json({ error: "Проверьте данные входа." });
+    return res.status(400).json({
+      error: "Проверьте данные входа."
+    });
   }
 
   try {
     const user = findUser.get(username);
 
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    if (!user || !(await bcrypt.compare(
+      password,
+      user.password_hash
+    ))) {
       return res.status(401).json({
         error: "Неверное имя пользователя или пароль."
       });
@@ -259,10 +320,13 @@ app.post("/api/login", authLimiter, async (req, res) => {
   }
 });
 
+// Выход
 app.post("/api/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      return res.status(500).json({ error: "Не удалось выйти." });
+      return res.status(500).json({
+        error: "Не удалось выйти."
+      });
     }
 
     res.clearCookie("deposit.sid", {
@@ -275,14 +339,145 @@ app.post("/api/logout", (req, res) => {
   });
 });
 
+// История текущего пользователя
 app.get("/api/history", requireLogin, (req, res) => {
   res.json({ items: getHistory.all(req.user.id) });
 });
 
+// Статус администратора
+app.get("/api/admin/me", requireAdmin, (req, res) => {
+  res.json({
+    admin: true,
+    username: req.user.username
+  });
+});
+
+// Список пользователей для администратора
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+  const users = db.prepare(`
+    SELECT id, username, balance, created_at
+    FROM users
+    ORDER BY id DESC
+    LIMIT 200
+  `).all();
+
+  res.json({ users });
+});
+
+// История операций выбранного пользователя
+app.get(
+  "/api/admin/users/:id/history",
+  requireAdmin,
+  (req, res) => {
+    const userId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(userId) || userId < 1) {
+      return res.status(400).json({
+        error: "Некорректный ID пользователя."
+      });
+    }
+
+    const user = getUser.get(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        error: "Пользователь не найден."
+      });
+    }
+
+    res.json({
+      user: publicUser(user),
+      items: getHistory.all(userId)
+    });
+  }
+);
+
+// Изменение только виртуального демо-баланса
+app.post(
+  "/api/admin/demo-adjust",
+  requireAdmin,
+  (req, res) => {
+    const userId = Number(req.body.userId);
+    const amount = Number(req.body.amount);
+
+    if (
+      !Number.isSafeInteger(userId) ||
+      userId < 1 ||
+      !Number.isSafeInteger(amount) ||
+      amount === 0 ||
+      Math.abs(amount) > 1000000
+    ) {
+      return res.status(400).json({
+        error: "Проверьте ID и сумму демо-кредитов."
+      });
+    }
+
+    try {
+      const result = db.transaction(() => {
+        const user = getUser.get(userId);
+
+        if (!user) {
+          throw new Error("Пользователь не найден.");
+        }
+
+        const balance = user.balance + amount;
+
+        if (
+          !Number.isSafeInteger(balance) ||
+          balance < 0 ||
+          balance > 1000000000
+        ) {
+          throw new Error("Недопустимый демо-баланс.");
+        }
+
+        db.prepare(`
+          UPDATE users
+          SET balance = ?
+          WHERE id = ?
+        `).run(balance, userId);
+
+        addTransaction.run(
+          userId,
+          "DEMO_ADMIN_ADJUST",
+          amount,
+          balance
+        );
+
+        return { user: getUser.get(userId) };
+      })();
+
+      res.json({
+        ok: true,
+        user: publicUser(result.user),
+        message: "Демо-баланс обновлён."
+      });
+    } catch (error) {
+      if (
+        error.message === "Пользователь не найден." ||
+        error.message === "Недопустимый демо-баланс."
+      ) {
+        return res.status(400).json({
+          error: error.message
+        });
+      }
+
+      console.error(error);
+      res.status(500).json({
+        error: "Не удалось изменить демо-баланс."
+      });
+    }
+  }
+);
+
+// Демо-пополнение
 app.post("/api/demo-topup", requireLogin, (req, res) => {
   const amount = Number(req.body.amount);
 
-  if (!Number.isSafeInteger(amount) || amount < 100 || amount > 100000) {
+  if (
+    !Number.isSafeInteger(amount) ||
+    amount < 100 ||
+    amount > 100000
+  ) {
     return res.status(400).json({
       error: "Можно добавить от 100 до 100000 демо-кредитов."
     });
@@ -297,8 +492,9 @@ app.post("/api/demo-topup", requireLogin, (req, res) => {
         throw new Error("Недопустимый баланс.");
       }
 
-      db.prepare("UPDATE users SET balance = ? WHERE id = ?")
-        .run(balance, user.id);
+      db.prepare(`
+        UPDATE users SET balance = ? WHERE id = ?
+      `).run(balance, user.id);
 
       addTransaction.run(
         user.id,
@@ -316,14 +512,21 @@ app.post("/api/demo-topup", requireLogin, (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Не удалось пополнить демо-баланс." });
+    res.status(500).json({
+      error: "Не удалось пополнить демо-баланс."
+    });
   }
 });
 
+// Демо-игра
 app.post("/api/demo-play", requireLogin, (req, res) => {
   const bet = Number(req.body.bet);
 
-  if (!Number.isSafeInteger(bet) || bet < 1 || bet > 1000) {
+  if (
+    !Number.isSafeInteger(bet) ||
+    bet < 1 ||
+    bet > 1000
+  ) {
     return res.status(400).json({
       error: "Ставка должна быть от 1 до 1000 демо-кредитов."
     });
@@ -341,8 +544,9 @@ app.post("/api/demo-play", requireLogin, (req, res) => {
       const change = won ? bet : -bet;
       const balance = user.balance + change;
 
-      db.prepare("UPDATE users SET balance = ? WHERE id = ?")
-        .run(balance, user.id);
+      db.prepare(`
+        UPDATE users SET balance = ? WHERE id = ?
+      `).run(balance, user.id);
 
       addTransaction.run(
         user.id,
@@ -361,16 +565,21 @@ app.post("/api/demo-play", requireLogin, (req, res) => {
     }
 
     console.error(error);
-    res.status(500).json({ error: "Не удалось выполнить демо-игру." });
+    res.status(500).json({
+      error: "Не удалось выполнить демо-игру."
+    });
   }
 });
 
+// Статические файлы сайта
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use((req, res) => {
-  res.status(404).json({ error: "Страница или маршрут не найдены." });
+  res.status(404).json({
+    error: "Страница или маршрут не найдены."
+  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`DEPOSIT 2.0 demo server running on port ${PORT}`);
+  console.log(`DEPOSIT 2.0 running on port ${PORT}`);
 });
