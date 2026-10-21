@@ -1,7 +1,5 @@
 "use strict";
 
-require("dotenv").config();
-
 const express = require("express");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
@@ -10,31 +8,66 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 const fs = require("fs");
-const crypto = require("crypto");
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = process.env.PORT || 3000;
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const SESSION_SECRET = process.env.SESSION_SECRET;
-const ADMIN_USERNAME = String(
-  process.env.ADMIN_USERNAME || ""
+
+app.set("trust proxy", 1);
+
+const ADMIN_USERNAME = (
+  process.env.ADMIN_USERNAME || "black"
 ).trim().toLowerCase();
 
+const SESSION_SECRET = process.env.SESSION_SECRET;
+
 if (IS_PRODUCTION && (!SESSION_SECRET || SESSION_SECRET.length < 32)) {
-  throw new Error("SESSION_SECRET must contain at least 32 characters.");
+  console.error(
+    "ERROR: Set SESSION_SECRET in Render Environment. Use at least 32 characters."
+  );
+  process.exit(1);
 }
 
-if (IS_PRODUCTION && !ADMIN_USERNAME) {
-  throw new Error("Set ADMIN_USERNAME in Render Environment.");
-}
+app.disable("x-powered-by");
 
-const sessionSecret =
-  SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        scriptSrc: ["'self'", "'unsafe-inline'"]
+      }
+    }
+  })
+);
 
-const dataDir = path.join(__dirname, "data");
-fs.mkdirSync(dataDir, { recursive: true });
+app.use(express.json({ limit: "20kb" }));
+app.use(express.urlencoded({ extended: false, limit: "20kb" }));
 
-const db = new Database(path.join(dataDir, "deposit.sqlite"));
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-8",
+  legacyHeaders: false
+});
+
+app.use("/api/", limiter);
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Слишком много попыток. Попробуй позже."
+  }
+});
+
+const dbPath = process.env.DB_PATH ||
+  path.join(__dirname, "data", "deposit.sqlite");
+
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
+const db = new Database(dbPath);
 
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
@@ -42,7 +75,7 @@ db.pragma("foreign_keys = ON");
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
     password_hash TEXT NOT NULL,
     balance INTEGER NOT NULL DEFAULT 100000,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -59,101 +92,61 @@ db.exec(`
   );
 `);
 
-const getUser = db.prepare(`
-  SELECT id, username, balance
+app.use(
+  session({
+    name: "deposit.sid",
+    secret: SESSION_SECRET || "development-only-secret-change-this",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: IS_PRODUCTION,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000
+    }
+  })
+);
+
+const findUserById = db.prepare(`
+  SELECT id, username, balance, created_at
   FROM users
   WHERE id = ?
 `);
 
-const findUser = db.prepare(`
-  SELECT id, username, password_hash, balance
+const findUserByUsername = db.prepare(`
+  SELECT *
   FROM users
-  WHERE username = ?
+  WHERE username = ? COLLATE NOCASE
 `);
 
-const addTransaction = db.prepare(`
+const insertTransaction = db.prepare(`
   INSERT INTO transactions
     (user_id, type, amount, balance_after)
   VALUES (?, ?, ?, ?)
 `);
 
-const getHistory = db.prepare(`
-  SELECT id, type, amount, balance_after, created_at
-  FROM transactions
-  WHERE user_id = ?
-  ORDER BY id DESC
-  LIMIT 50
-`);
-
-app.disable("x-powered-by");
-
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-
-      // index.html содержит встроенный JavaScript.
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      frameAncestors: ["'none'"]
-    }
-  }
-}));
-
-app.use(express.json({ limit: "10kb" }));
-
-app.use(session({
-  name: "deposit.sid",
-  secret: sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: IS_PRODUCTION,
-    maxAge: 1000 * 60 * 60 * 24
-  }
-}));
-
-app.use("/api", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 150,
-  standardHeaders: "draft-7",
-  legacyHeaders: false
-}));
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: "draft-7",
-  legacyHeaders: false
-});
-
 function publicUser(user) {
   return {
     id: user.id,
     username: user.username,
-    balance: user.balance
+    balance: user.balance,
+    created_at: user.created_at
   };
 }
 
 function requireLogin(req, res, next) {
   if (!req.session.userId) {
     return res.status(401).json({
-      error: "Сначала войдите в аккаунт."
+      error: "Сначала войди в аккаунт."
     });
   }
 
-  const user = getUser.get(req.session.userId);
+  const user = findUserById.get(req.session.userId);
 
   if (!user) {
-    return req.session.destroy(() => {
-      res.status(401).json({ error: "Аккаунт не найден." });
+    req.session.destroy(() => {});
+    return res.status(401).json({
+      error: "Аккаунт не найден. Войди снова."
     });
   }
 
@@ -164,11 +157,11 @@ function requireLogin(req, res, next) {
 function requireAdmin(req, res, next) {
   if (!req.session.userId) {
     return res.status(401).json({
-      error: "Сначала войдите в аккаунт."
+      error: "Сначала войди в аккаунт."
     });
   }
 
-  const user = getUser.get(req.session.userId);
+  const user = findUserById.get(req.session.userId);
 
   if (!user) {
     return res.status(401).json({
@@ -176,12 +169,9 @@ function requireAdmin(req, res, next) {
     });
   }
 
-  if (
-    !ADMIN_USERNAME ||
-    user.username.toLowerCase() !== ADMIN_USERNAME
-  ) {
+  if (user.username.toLowerCase() !== ADMIN_USERNAME) {
     return res.status(403).json({
-      error: "Нет доступа к панели администратора."
+      error: "Доступ только для администратора."
     });
   }
 
@@ -189,141 +179,161 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-function saveLogin(req, res, user) {
-  req.session.regenerate((err) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({
-        error: "Ошибка создания сессии."
-      });
-    }
-
-    req.session.userId = user.id;
-
-    req.session.save((saveError) => {
-      if (saveError) {
-        console.error(saveError);
-        return res.status(500).json({
-          error: "Не удалось сохранить сессию."
-        });
-      }
-
-      res.json({ user: publicUser(user) });
-    });
-  });
-}
-
-// Проверка сервера
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, mode: "DEMO" });
+  res.json({
+    ok: true,
+    service: "DEPOSIT 2.0"
+  });
 });
 
-// Текущий пользователь
 app.get("/api/me", (req, res) => {
   if (!req.session.userId) {
     return res.json({ user: null });
   }
 
-  const user = getUser.get(req.session.userId);
+  const user = findUserById.get(req.session.userId);
 
-  res.json({ user: user ? publicUser(user) : null });
+  if (!user) {
+    return res.json({ user: null });
+  }
+
+  res.json({ user });
 });
 
-// Регистрация
-app.post("/api/register", authLimiter, async (req, res) => {
-  const username = String(req.body.username || "").trim();
-  const password = String(req.body.password || "");
-
-  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-    return res.status(400).json({
-      error: "Имя: 3–20 символов, латинские буквы, цифры и _."
-    });
-  }
-
-  if (password.length < 8 || password.length > 72) {
-    return res.status(400).json({
-      error: "Пароль должен содержать от 8 до 72 символов."
-    });
-  }
-
-  // Не позволяем повторно регистрировать имя администратора.
-  // Если оно уже занято, обычная проверка уникальности БД
-  // также не позволит создать второй аккаунт.
-  if (
-    ADMIN_USERNAME &&
-    username.toLowerCase() === ADMIN_USERNAME &&
-    findUser.get(username)
-  ) {
-    return res.status(409).json({
-      error: "Это имя пользователя уже занято."
-    });
-  }
-
+app.post("/api/register", loginLimiter, async (req, res) => {
   try {
+    const username = String(req.body.username || "").trim();
+    const password = String(req.body.password || "");
+
+    if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
+      return res.status(400).json({
+        error: "Логин должен содержать 3–32 английских буквы, цифры или _."
+      });
+    }
+
+    if (password.length < 8 || password.length > 128) {
+      return res.status(400).json({
+        error: "Пароль должен содержать от 8 до 128 символов."
+      });
+    }
+
+    if (username.toLowerCase() === ADMIN_USERNAME) {
+      return res.status(403).json({
+        error: "Этот логин зарезервирован для администратора."
+      });
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const createUser = db.transaction(() => {
+    let userId;
+
+    try {
       const result = db.prepare(`
         INSERT INTO users (username, password_hash, balance)
         VALUES (?, ?, 100000)
       `).run(username, passwordHash);
 
-      const id = Number(result.lastInsertRowid);
+      userId = Number(result.lastInsertRowid);
 
-      addTransaction.run(id, "DEMO_START", 100000, 100000);
+      insertTransaction.run(
+        userId,
+        "demo_bonus",
+        100000,
+        100000
+      );
+    } catch (error) {
+      if (String(error.code).includes("SQLITE_CONSTRAINT")) {
+        return res.status(409).json({
+          error: "Такой логин уже существует."
+        });
+      }
 
-      return getUser.get(id);
-    });
-
-    saveLogin(req, res, createUser());
-  } catch (error) {
-    if (String(error.code || "").includes("SQLITE_CONSTRAINT")) {
-      return res.status(409).json({
-        error: "Это имя пользователя уже занято."
-      });
+      throw error;
     }
 
-    console.error(error);
+    req.session.userId = userId;
+
+    req.session.save((error) => {
+      if (error) {
+        console.error("Session save error:", error.message);
+        return res.status(500).json({
+          error: "Не удалось создать сессию. Попробуй снова."
+        });
+      }
+
+      res.status(201).json({
+        user: publicUser(findUserById.get(userId))
+      });
+    });
+  } catch (error) {
+    console.error("Registration error:", error.message);
     res.status(500).json({
-      error: "Не удалось создать аккаунт."
+      error: "Ошибка регистрации."
     });
   }
 });
 
-// Вход
-app.post("/api/login", authLimiter, async (req, res) => {
-  const username = String(req.body.username || "").trim();
-  const password = String(req.body.password || "");
-
-  if (username.length > 20 || password.length > 72) {
-    return res.status(400).json({
-      error: "Проверьте данные входа."
-    });
-  }
-
+app.post("/api/login", loginLimiter, async (req, res) => {
   try {
-    const user = findUser.get(username);
+    const username = String(req.body.username || "").trim();
+    const password = String(req.body.password || "");
 
-    if (!user || !(await bcrypt.compare(
-      password,
-      user.password_hash
-    ))) {
-      return res.status(401).json({
-        error: "Неверное имя пользователя или пароль."
+    if (!username || !password) {
+      return res.status(400).json({
+        error: "Введи логин и пароль."
       });
     }
 
-    saveLogin(req, res, user);
+    const user = findUserByUsername.get(username);
+
+    if (!user) {
+      return res.status(401).json({
+        error: "Неверный логин или пароль."
+      });
+    }
+
+    const valid = await bcrypt.compare(password, user.password_hash);
+
+    if (!valid) {
+      return res.status(401).json({
+        error: "Неверный логин или пароль."
+      });
+    }
+
+    req.session.regenerate((error) => {
+      if (error) {
+        console.error("Session regenerate error:", error.message);
+        return res.status(500).json({
+          error: "Не удалось начать сессию."
+        });
+      }
+
+      req.session.userId = user.id;
+
+      req.session.save((saveError) => {
+        if (saveError) {
+          console.error("Session save error:", saveError.message);
+          return res.status(500).json({
+            error: "Не удалось сохранить сессию."
+          });
+        }
+
+        res.json({
+          user: publicUser(findUserById.get(user.id))
+        });
+      });
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Ошибка входа." });
+    console.error("Login error:", error.message);
+    res.status(500).json({
+      error: "Ошибка входа."
+    });
   }
 });
 
-// Выход
 app.post("/api/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
+  req.session.destroy((error) => {
+    if (error) {
       return res.status(500).json({
         error: "Не удалось выйти."
       });
@@ -331,255 +341,248 @@ app.post("/api/logout", (req, res) => {
 
     res.clearCookie("deposit.sid", {
       httpOnly: true,
-      sameSite: "lax",
-      secure: IS_PRODUCTION
+      secure: IS_PRODUCTION,
+      sameSite: "lax"
     });
 
     res.json({ ok: true });
   });
 });
 
-// История текущего пользователя
 app.get("/api/history", requireLogin, (req, res) => {
-  res.json({ items: getHistory.all(req.user.id) });
-});
-
-// Статус администратора
-app.get("/api/admin/me", requireAdmin, (req, res) => {
-  res.json({
-    admin: true,
-    username: req.user.username
-  });
-});
-
-// Список пользователей для администратора
-app.get("/api/admin/users", requireAdmin, (req, res) => {
-  const users = db.prepare(`
-    SELECT id, username, balance, created_at
-    FROM users
+  const items = db.prepare(`
+    SELECT id, type, amount, balance_after, created_at
+    FROM transactions
+    WHERE user_id = ?
     ORDER BY id DESC
-    LIMIT 200
-  `).all();
+    LIMIT 100
+  `).all(req.user.id);
 
-  res.json({ users });
+  res.json({ items });
 });
 
-// История операций выбранного пользователя
-app.get(
-  "/api/admin/users/:id/history",
-  requireAdmin,
-  (req, res) => {
-    const userId = Number(req.params.id);
-
-    if (!Number.isSafeInteger(userId) || userId < 1) {
-      return res.status(400).json({
-        error: "Некорректный ID пользователя."
-      });
-    }
-
-    const user = getUser.get(userId);
-
-    if (!user) {
-      return res.status(404).json({
-        error: "Пользователь не найден."
-      });
-    }
-
-    res.json({
-      user: publicUser(user),
-      items: getHistory.all(userId)
-    });
-  }
-);
-
-// Изменение только виртуального демо-баланса
-app.post(
-  "/api/admin/demo-adjust",
-  requireAdmin,
-  (req, res) => {
-    const userId = Number(req.body.userId);
-    const amount = Number(req.body.amount);
-
-    if (
-      !Number.isSafeInteger(userId) ||
-      userId < 1 ||
-      !Number.isSafeInteger(amount) ||
-      amount === 0 ||
-      Math.abs(amount) > 1000000
-    ) {
-      return res.status(400).json({
-        error: "Проверьте ID и сумму демо-кредитов."
-      });
-    }
-
-    try {
-      const result = db.transaction(() => {
-        const user = getUser.get(userId);
-
-        if (!user) {
-          throw new Error("Пользователь не найден.");
-        }
-
-        const balance = user.balance + amount;
-
-        if (
-          !Number.isSafeInteger(balance) ||
-          balance < 0 ||
-          balance > 1000000000
-        ) {
-          throw new Error("Недопустимый демо-баланс.");
-        }
-
-        db.prepare(`
-          UPDATE users
-          SET balance = ?
-          WHERE id = ?
-        `).run(balance, userId);
-
-        addTransaction.run(
-          userId,
-          "DEMO_ADMIN_ADJUST",
-          amount,
-          balance
-        );
-
-        return { user: getUser.get(userId) };
-      })();
-
-      res.json({
-        ok: true,
-        user: publicUser(result.user),
-        message: "Демо-баланс обновлён."
-      });
-    } catch (error) {
-      if (
-        error.message === "Пользователь не найден." ||
-        error.message === "Недопустимый демо-баланс."
-      ) {
-        return res.status(400).json({
-          error: error.message
-        });
-      }
-
-      console.error(error);
-      res.status(500).json({
-        error: "Не удалось изменить демо-баланс."
-      });
-    }
-  }
-);
-
-// Демо-пополнение
 app.post("/api/demo-topup", requireLogin, (req, res) => {
   const amount = Number(req.body.amount);
 
   if (
     !Number.isSafeInteger(amount) ||
-    amount < 100 ||
+    amount < 1 ||
     amount > 100000
   ) {
     return res.status(400).json({
-      error: "Можно добавить от 100 до 100000 демо-кредитов."
+      error: "Некорректное количество демо-кредитов."
+    });
+  }
+
+  const result = db.transaction(() => {
+    const user = db.prepare(`
+      SELECT balance FROM users WHERE id = ?
+    `).get(req.user.id);
+
+    const newBalance = user.balance + amount;
+
+    db.prepare(`
+      UPDATE users SET balance = ? WHERE id = ?
+    `).run(newBalance, req.user.id);
+
+    insertTransaction.run(
+      req.user.id,
+      "demo_topup",
+      amount,
+      newBalance
+    );
+
+    return newBalance;
+  })();
+
+  res.json({
+    ok: true,
+    balance: result,
+    message: "Демо-кредиты добавлены."
+  });
+});
+
+app.post("/api/demo-play", requireLogin, (req, res) => {
+  const bet = Number(req.body.bet);
+  const game = String(req.body.game || "");
+
+  if (!["luck", "coin", "challenge"].includes(game)) {
+    return res.status(400).json({
+      error: "Неизвестная демо-игра."
+    });
+  }
+
+  if (!Number.isSafeInteger(bet) || bet !== 100) {
+    return res.status(400).json({
+      error: "Ставка в демо-режиме должна составлять 100 кредитов."
+    });
+  }
+
+  const result = db.transaction(() => {
+    const user = db.prepare(`
+      SELECT balance FROM users WHERE id = ?
+    `).get(req.user.id);
+
+    if (!user || user.balance < bet) {
+      throw new Error("Недостаточно демо-кредитов.");
+    }
+
+    const won = Math.random() < 0.45;
+    const delta = won ? bet : -bet;
+    const newBalance = user.balance + delta;
+
+    db.prepare(`
+      UPDATE users SET balance = ? WHERE id = ?
+    `).run(newBalance, req.user.id);
+
+    insertTransaction.run(
+      req.user.id,
+      "demo_game_" + game,
+      delta,
+      newBalance
+    );
+
+    return { won, newBalance, delta };
+  });
+
+  try {
+    const outcome = result();
+
+    res.json({
+      ok: true,
+      balance: outcome.newBalance,
+      amount: outcome.delta,
+      message: outcome.won
+        ? "Ты выиграл 100 виртуальных демо-кредитов!"
+        : "Ты потерял 100 виртуальных демо-кредитов."
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: error.message
+    });
+  }
+});
+
+app.get("/api/admin/me", requireAdmin, (req, res) => {
+  res.json({
+    ok: true,
+    user: publicUser(req.user)
+  });
+});
+
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+  const users = db.prepare(`
+    SELECT id, username, balance, created_at
+    FROM users
+    ORDER BY id DESC
+    LIMIT 500
+  `).all();
+
+  res.json({ users });
+});
+
+app.get("/api/admin/users/:id/history", requireAdmin, (req, res) => {
+  const userId = Number(req.params.id);
+
+  if (!Number.isSafeInteger(userId) || userId < 1) {
+    return res.status(400).json({
+      error: "Некорректный ID пользователя."
+    });
+  }
+
+  const user = findUserById.get(userId);
+
+  if (!user) {
+    return res.status(404).json({
+      error: "Пользователь не найден."
+    });
+  }
+
+  const items = db.prepare(`
+    SELECT id, type, amount, balance_after, created_at
+    FROM transactions
+    WHERE user_id = ?
+    ORDER BY id DESC
+    LIMIT 100
+  `).all(userId);
+
+  res.json({
+    user: publicUser(user),
+    items
+  });
+});
+
+app.post("/api/admin/demo-adjust", requireAdmin, (req, res) => {
+  const userId = Number(req.body.userId);
+  const amount = Number(req.body.amount);
+
+  if (
+    !Number.isSafeInteger(userId) ||
+    userId < 1 ||
+    !Number.isSafeInteger(amount) ||
+    amount === 0 ||
+    Math.abs(amount) > 1000000
+  ) {
+    return res.status(400).json({
+      error: "Некорректный ID или сумма."
     });
   }
 
   try {
     const result = db.transaction(() => {
-      const user = getUser.get(req.user.id);
-      const balance = user.balance + amount;
+      const user = db.prepare(`
+        SELECT id, balance FROM users WHERE id = ?
+      `).get(userId);
 
-      if (!Number.isSafeInteger(balance)) {
-        throw new Error("Недопустимый баланс.");
+      if (!user) {
+        throw new Error("Пользователь не найден.");
+      }
+
+      const newBalance = user.balance + amount;
+
+      if (newBalance < 0 || !Number.isSafeInteger(newBalance)) {
+        throw new Error("Баланс не может быть отрицательным.");
       }
 
       db.prepare(`
         UPDATE users SET balance = ? WHERE id = ?
-      `).run(balance, user.id);
+      `).run(newBalance, userId);
 
-      addTransaction.run(
-        user.id,
-        "DEMO_TOPUP",
+      insertTransaction.run(
+        userId,
+        "admin_demo_adjustment",
         amount,
-        balance
+        newBalance
       );
 
-      return { balance };
+      return newBalance;
     })();
 
     res.json({
-      ...result,
-      message: "Добавлены виртуальные демо-кредиты."
+      ok: true,
+      balance: result,
+      message: "Демо-баланс успешно изменён."
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: "Не удалось пополнить демо-баланс."
+    res.status(400).json({
+      error: error.message
     });
   }
 });
 
-// Демо-игра
-app.post("/api/demo-play", requireLogin, (req, res) => {
-  const bet = Number(req.body.bet);
-
-  if (
-    !Number.isSafeInteger(bet) ||
-    bet < 1 ||
-    bet > 1000
-  ) {
-    return res.status(400).json({
-      error: "Ставка должна быть от 1 до 1000 демо-кредитов."
-    });
-  }
-
-  try {
-    const result = db.transaction(() => {
-      const user = getUser.get(req.user.id);
-
-      if (!user || user.balance < bet) {
-        throw new Error("Недостаточно демо-кредитов.");
-      }
-
-      const won = crypto.randomInt(0, 100) < 45;
-      const change = won ? bet : -bet;
-      const balance = user.balance + change;
-
-      db.prepare(`
-        UPDATE users SET balance = ? WHERE id = ?
-      `).run(balance, user.id);
-
-      addTransaction.run(
-        user.id,
-        won ? "DEMO_WIN" : "DEMO_LOSS",
-        change,
-        balance
-      );
-
-      return { won, change, balance };
-    })();
-
-    res.json({ ...result, mode: "DEMO" });
-  } catch (error) {
-    if (error.message === "Недостаточно демо-кредитов.") {
-      return res.status(400).json({ error: error.message });
-    }
-
-    console.error(error);
-    res.status(500).json({
-      error: "Не удалось выполнить демо-игру."
-    });
-  }
-});
-
-// Статические файлы сайта
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use((req, res) => {
-  res.status(404).json({
-    error: "Страница или маршрут не найдены."
-  });
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({
+      error: "API-маршрут не найден."
+    });
+  }
+
+  res.status(404).send("Страница не найдена.");
 });
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`DEPOSIT 2.0 running on port ${PORT}`);
+  console.log(`Database path: ${dbPath}`);
 });
