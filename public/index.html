@@ -23,6 +23,10 @@
 
     * { box-sizing: border-box; }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
       background:
@@ -31,6 +35,10 @@
       color: var(--text);
       font: 16px system-ui, Arial, sans-serif;
       min-height: 100vh;
+    }
+
+    body.game-screen-open {
+      overflow: hidden;
     }
 
     header {
@@ -143,6 +151,8 @@
       gap: 14px;
     }
 
+    /* Карточки выбора игр */
+
     .game {
       position: relative;
       isolation: isolate;
@@ -152,7 +162,10 @@
       padding: 16px;
       min-width: 0;
       overflow: hidden;
-      transition: border-color .25s, box-shadow .25s, transform .25s;
+      transition:
+        border-color .25s,
+        box-shadow .25s,
+        transform .25s;
     }
 
     .game h3 { margin-top: 0; }
@@ -161,6 +174,18 @@
     .game input {
       width: 100%;
       margin-bottom: 10px;
+    }
+
+    .game:not(.in-game-screen) {
+      cursor: pointer;
+    }
+
+    .game:not(.in-game-screen):hover {
+      border-color: #c7a759;
+      box-shadow:
+        0 0 0 1px #f4c96b20,
+        0 12px 35px #0004;
+      transform: translateY(-3px);
     }
 
     .game.playing {
@@ -188,7 +213,8 @@
     .bad { color: var(--red); }
     .cards { font-size: 23px; overflow-wrap: anywhere; }
 
-    /* Панель визуальных эффектов */
+    /* Визуальная зона игры */
+
     .game-visual {
       position: relative;
       min-height: 132px;
@@ -202,7 +228,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      perspective: 500px;
+      perspective: 700px;
     }
 
     .game-visual::before,
@@ -237,6 +263,7 @@
     }
 
     /* Быстрые ставки */
+
     .quick-bets {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -282,7 +309,230 @@
       font-size: 20px;
     }
 
+    /* Полноэкранный игровой режим */
+
+    .game-screen-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background:
+        radial-gradient(ellipse at 50% 0, #1c3157aa, transparent 60%),
+        rgba(3, 7, 16, .94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition:
+        opacity .25s ease,
+        visibility .25s ease;
+    }
+
+    .game-screen-overlay.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .game-screen-dialog {
+      width: min(1100px, 100%);
+      height: min(900px, 94vh);
+      height: min(900px, 94dvh);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 0, #26395a55, transparent 60%),
+        linear-gradient(145deg, #111b2e, #080e1a 80%);
+      border: 1px solid #8e78444f;
+      border-radius: 22px;
+      box-shadow:
+        0 25px 100px #000b,
+        0 0 50px #f4c96b0c;
+      transform: translateY(22px) scale(.97);
+      transition: transform .3s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .game-screen-overlay.open .game-screen-dialog {
+      transform: translateY(0) scale(1);
+    }
+
+    .game-screen-toolbar {
+      flex-shrink: 0;
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: #0b1220dd;
+    }
+
+    .game-screen-heading {
+      min-width: 0;
+    }
+
+    .game-screen-heading strong {
+      display: block;
+      color: var(--gold);
+      font-size: 17px;
+      overflow-wrap: anywhere;
+    }
+
+    .game-screen-heading span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .game-back-button {
+      flex-shrink: 0;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 14px;
+      background: #202d45;
+      color: var(--text);
+      border-color: #394965;
+    }
+
+    .game-screen-content {
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: clamp(12px, 3vw, 28px);
+    }
+
+    .game.in-game-screen {
+      width: 100%;
+      max-width: none;
+      min-height: 100%;
+      padding: clamp(16px, 3vw, 30px);
+      border: 1px solid #ffffff10;
+      border-radius: 17px;
+      background:
+        radial-gradient(ellipse at 50% 0, #283a5c55, transparent 65%),
+        linear-gradient(145deg, #141f34, #0c1423);
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .game.in-game-screen h3 {
+      font-size: clamp(24px, 4vw, 34px);
+      margin: 0 0 10px;
+    }
+
+    .game.in-game-screen > p.muted {
+      font-size: clamp(14px, 2vw, 16px);
+      line-height: 1.65;
+    }
+
+    .game.in-game-screen .game-visual {
+      min-height: clamp(190px, 32vh, 320px);
+      margin: 22px 0;
+      border-radius: 20px;
+      background:
+        radial-gradient(ellipse at 50% 70%, #334b71, transparent 65%),
+        linear-gradient(180deg, #0a1323, #172943);
+      border-color: #ffffff15;
+      box-shadow: inset 0 0 50px #0003;
+    }
+
+    .game.in-game-screen .game-emoji {
+      font-size: clamp(85px, 14vw, 145px);
+      filter: drop-shadow(0 8px 25px #0009);
+    }
+
+    .game.in-game-screen .bet-controls {
+      grid-template-columns: 56px minmax(0, 1fr) 56px;
+      max-width: 600px;
+    }
+
+    .game.in-game-screen .bet-controls button {
+      font-size: 25px;
+    }
+
+    .game.in-game-screen .bet-controls input {
+      font-size: 20px;
+      min-height: 52px;
+    }
+
+    .game.in-game-screen .quick-bets {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      max-width: 600px;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .game.in-game-screen .quick-bets button {
+      font-size: 14px;
+      min-height: 44px;
+    }
+
+    .game.in-game-screen > button:not(.secondary),
+    .game.in-game-screen > button.secondary {
+      min-height: 50px;
+      padding: 12px 22px;
+      font-size: 16px;
+    }
+
+    .game.in-game-screen .result {
+      font-size: 17px;
+      padding: 12px 0;
+    }
+
+    .game.in-game-screen .apple-row {
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .game.in-game-screen .apple-row button {
+      min-width: 76px;
+      min-height: 76px;
+      font-size: 34px;
+    }
+
+    .game.in-game-screen .cards {
+      font-size: clamp(23px, 4vw, 34px);
+      line-height: 1.8;
+    }
+
+    .game.in-game-screen #appleArea,
+    .game.in-game-screen #aviatorArea,
+    .game.in-game-screen #blackjackArea {
+      padding: 16px;
+      border: 1px solid #ffffff12;
+      border-radius: 16px;
+      background: #080f1e99;
+    }
+
+    .game.in-game-screen #appleArea p,
+    .game.in-game-screen #aviatorArea p,
+    .game.in-game-screen #blackjackArea p {
+      line-height: 1.8;
+    }
+
+    .game.in-game-screen #aviatorMultiplier {
+      color: var(--green);
+      font-size: clamp(32px, 7vw, 58px);
+      text-shadow: 0 0 25px #3bd69a33;
+    }
+
+    .game.in-game-screen #appleMultiplier {
+      color: var(--gold);
+      font-size: 24px;
+    }
+
     /* Анимация монеты */
+
     .game.playing[data-game="coin"] .game-emoji {
       animation: coinFlip 1.1s ease-in-out;
     }
@@ -295,6 +545,7 @@
     }
 
     /* Анимация Luck */
+
     .game.playing[data-game="luck"] .game-emoji {
       animation: luckSpin 1.4s cubic-bezier(.2,.8,.25,1);
     }
@@ -306,6 +557,7 @@
     }
 
     /* Анимация Challenge */
+
     .game.playing[data-game="challenge"] .game-emoji {
       animation: targetPulse .65s ease-in-out 2;
     }
@@ -318,6 +570,7 @@
     }
 
     /* Анимация Apple */
+
     .game.playing[data-game="apple"] .game-emoji {
       animation: applePop .5s cubic-bezier(.2,.8,.2,1);
     }
@@ -329,9 +582,10 @@
     }
 
     /* Самолёт */
+
     .game.playing[data-game="aviator"] .game-visual {
       background:
-        radial-gradient(ellipse at 75% 25%, #28528c55, transparent 50%),
+        radial-gradient(ellipse at 75% 25%, #28528c88, transparent 50%),
         linear-gradient(180deg, #0b172b, #172c49);
     }
 
@@ -346,6 +600,7 @@
     }
 
     /* Карты */
+
     .game.playing[data-game="blackjack"] .game-emoji {
       animation: cardDeal .55s cubic-bezier(.2,.8,.2,1);
     }
@@ -356,6 +611,7 @@
     }
 
     /* Ячейки Apple */
+
     .apple-row {
       display: flex;
       gap: 10px;
@@ -373,6 +629,7 @@
     .apple-row button:active { transform: scale(.9); }
 
     /* Таблицы */
+
     table {
       border-collapse: collapse;
       width: 100%;
@@ -399,6 +656,53 @@
       animation: resultAppear .25s ease-out;
     }
 
+    @media (max-width: 700px) {
+      .game-screen-overlay {
+        padding: 0;
+      }
+
+      .game-screen-dialog {
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
+        max-height: none;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+      }
+
+      .game-screen-toolbar {
+        min-height: 62px;
+        padding: 9px 12px;
+      }
+
+      .game-back-button {
+        padding: 9px 11px;
+        font-size: 14px;
+      }
+
+      .game-screen-content {
+        padding: 10px;
+      }
+
+      .game.in-game-screen {
+        padding: 15px;
+      }
+
+      .game.in-game-screen .game-visual {
+        min-height: 210px;
+      }
+
+      .game.in-game-screen .quick-bets {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .game.in-game-screen .apple-row button {
+        flex: 1;
+        min-width: 60px;
+      }
+    }
+
     @media (max-width: 480px) {
       .panel { padding: 13px; }
       header { padding: 18px 12px; }
@@ -406,6 +710,22 @@
       .game { padding: 13px; }
       .game-visual { min-height: 112px; }
       .balance { font-size: 23px; }
+
+      .game-screen-heading strong {
+        font-size: 15px;
+      }
+
+      .game.in-game-screen .game-visual {
+        min-height: 190px;
+      }
+
+      .game.in-game-screen .result {
+        font-size: 15px;
+      }
+
+      .game.in-game-screen .bet-controls {
+        grid-template-columns: 46px minmax(0, 1fr) 46px;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -500,8 +820,9 @@
     </div>
 
     <h2>Игры</h2>
+    <p class="muted">Нажмите на игру, чтобы открыть её на большом экране.</p>
 
-    <div class="grid">
+    <div class="grid" id="gamesGrid">
 
       <!-- Luck -->
       <article class="game" data-game="luck">
@@ -647,6 +968,8 @@
   </section>
 </main>
 
+<!-- Большое игровое окно создаётся автоматически при загрузке -->
+
 <script>
 const $ = id => document.getElementById(id);
 
@@ -670,6 +993,162 @@ const GAME_EMOJIS = {
   aviator: "✈️",
   blackjack: "🃏"
 };
+
+/* ================================
+   БОЛЬШОЙ ЭКРАН ИГРЫ
+================================ */
+
+let activeGameScreen = null;
+let gamePlaceholder = null;
+let previousFocusedElement = null;
+
+const gameOverlay = document.createElement("div");
+gameOverlay.className = "game-screen-overlay";
+gameOverlay.id = "gameScreenOverlay";
+gameOverlay.setAttribute("aria-hidden", "true");
+
+gameOverlay.innerHTML = `
+  <section
+    class="game-screen-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Игровой экран"
+  >
+    <div class="game-screen-toolbar">
+      <div class="game-screen-heading">
+        <strong id="gameScreenTitle">🎮 Игра</strong>
+        <span>DEPOSIT 2.0 · Демо-режим</span>
+      </div>
+
+      <button
+        type="button"
+        id="closeGameScreen"
+        class="game-back-button"
+      >
+        ← Назад к играм
+      </button>
+    </div>
+
+    <div class="game-screen-content" id="gameScreenContent"></div>
+  </section>
+`;
+
+document.body.appendChild(gameOverlay);
+
+const gameScreenContent = $("gameScreenContent");
+const gameScreenTitle = $("gameScreenTitle");
+
+function getGameTitle(game) {
+  const heading = game.querySelector("h3");
+  return heading ? heading.textContent.trim() : "Игра";
+}
+
+function openGameScreen(game) {
+  if (!game || !game.classList.contains("game")) return;
+
+  if (activeGameScreen === game) return;
+
+  if (activeGameScreen) {
+    closeGameScreen();
+  }
+
+  previousFocusedElement = document.activeElement;
+  activeGameScreen = game;
+
+  gamePlaceholder = document.createComment("Место игровой карточки");
+  game.parentNode.insertBefore(gamePlaceholder, game);
+
+  game.classList.add("in-game-screen");
+  gameScreenContent.appendChild(game);
+
+  gameScreenTitle.textContent = getGameTitle(game);
+
+  gameOverlay.classList.add("open");
+  gameOverlay.setAttribute("aria-hidden", "false");
+  document.body.classList.add("game-screen-open");
+
+  $("closeGameScreen").focus({ preventScroll: true });
+}
+
+function closeGameScreen() {
+  if (!activeGameScreen) return;
+
+  const game = activeGameScreen;
+
+  if (gamePlaceholder && gamePlaceholder.parentNode) {
+    gamePlaceholder.parentNode.insertBefore(game, gamePlaceholder);
+    gamePlaceholder.remove();
+  } else {
+    $("gamesGrid").appendChild(game);
+  }
+
+  game.classList.remove("in-game-screen");
+
+  activeGameScreen = null;
+  gamePlaceholder = null;
+
+  gameOverlay.classList.remove("open");
+  gameOverlay.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("game-screen-open");
+
+  if (
+    previousFocusedElement &&
+    document.contains(previousFocusedElement)
+  ) {
+    previousFocusedElement.focus({ preventScroll: true });
+  }
+
+  previousFocusedElement = null;
+}
+
+$("closeGameScreen").addEventListener("click", closeGameScreen);
+
+/* Нажатие на фон закрывает окно */
+gameOverlay.addEventListener("click", event => {
+  if (event.target === gameOverlay) {
+    closeGameScreen();
+  }
+});
+
+/* Escape закрывает окно, не завершая игровой раунд */
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && activeGameScreen) {
+    closeGameScreen();
+  }
+});
+
+/* Нажатие на карточку открывает большую игру.
+   Кнопки и поля ставок обрабатываются отдельно. */
+document.addEventListener("click", event => {
+  const game = event.target.closest(".game");
+
+  if (!game || game === activeGameScreen) return;
+
+  const control = event.target.closest("input, button, select, textarea, a");
+
+  if (!control) {
+    openGameScreen(game);
+    return;
+  }
+
+  const startsOrPlaysGame = control.matches(
+    '[data-simple], #appleStart, #aviatorStart, #blackjackStart,' +
+    ' [data-apple], #appleCashout, #aviatorCashout, #bjHit, #bjStand'
+  );
+
+  if (startsOrPlaysGame) {
+    openGameScreen(game);
+  }
+}, true);
+
+/* При выходе из аккаунта закрываем игровое окно */
+function resetGameScreen() {
+  if (activeGameScreen) closeGameScreen();
+}
+
+/* ================================
+   API И ОБЩИЕ ФУНКЦИИ
+================================ */
 
 async function api(url, options = {}) {
   const response = await fetch(url, {
@@ -850,7 +1329,7 @@ function setupBetControls() {
 
 /* Анимация игровой карточки */
 function animateGame(gameId, duration = 1800) {
-  const input = $('bet-' + gameId);
+  const input = $("bet-" + gameId);
   const game = input?.closest(".game");
 
   if (!game) return;
@@ -865,6 +1344,10 @@ function animateGame(gameId, duration = 1800) {
     game.classList.remove("playing");
   }, duration);
 }
+
+/* ================================
+   ПОЛЬЗОВАТЕЛЬ И ИСТОРИЯ
+================================ */
 
 async function refreshMe() {
   const data = await api("/api/me");
@@ -1045,6 +1528,10 @@ async function enterApp() {
   await refreshAdmin();
 }
 
+/* ================================
+   ВХОД И РЕГИСТРАЦИЯ
+================================ */
+
 $("toggleAuth").addEventListener("click", () => {
   isRegister = !isRegister;
 
@@ -1082,7 +1569,9 @@ function stopAviatorTimer() {
 }
 
 $("logout").addEventListener("click", async () => {
+  resetGameScreen();
   stopAviatorTimer();
+
   aviatorActive = false;
   appleActive = false;
   blackjackActive = false;
@@ -1095,6 +1584,10 @@ $("logout").addEventListener("click", async () => {
     $("auth").classList.remove("hidden");
   }
 });
+
+/* ================================
+   ТЕСТОВОЕ ПОПОЛНЕНИЕ
+================================ */
 
 $("topupForm").addEventListener("submit", async event => {
   event.preventDefault();
@@ -1119,7 +1612,10 @@ $("topupForm").addEventListener("submit", async event => {
   }
 });
 
-/* Luck, Coin и Challenge */
+/* ================================
+   LUCK, COIN И CHALLENGE
+================================ */
+
 document.querySelectorAll("[data-simple]").forEach(button => {
   button.addEventListener("click", async () => {
     const game = button.dataset.simple;
@@ -1151,7 +1647,10 @@ document.querySelectorAll("[data-simple]").forEach(button => {
   });
 });
 
-/* Apple of Fortune */
+/* ================================
+   APPLE OF FORTUNE
+================================ */
+
 $("appleStart").addEventListener("click", async () => {
   try {
     if (appleActive) throw new Error("Завершите текущую игру");
@@ -1237,7 +1736,10 @@ $("appleCashout").addEventListener("click", async () => {
   }
 });
 
-/* Aviator */
+/* ================================
+   AVIATOR
+================================ */
+
 $("aviatorStart").addEventListener("click", async () => {
   try {
     if (aviatorActive) throw new Error("Завершите текущий раунд");
@@ -1322,7 +1824,10 @@ $("aviatorCashout").addEventListener("click", async () => {
   }
 });
 
-/* Blackjack */
+/* ================================
+   BLACKJACK
+================================ */
+
 function showCards(id, cards) {
   $(id).textContent = (cards || [])
     .map(card => card.rank + card.suit)
@@ -1411,6 +1916,10 @@ $("blackjackStart").addEventListener("click", async () => {
 $("bjHit").addEventListener("click", () => blackjackAction("hit"));
 $("bjStand").addEventListener("click", () => blackjackAction("stand"));
 
+/* ================================
+   ОБНОВЛЕНИЕ ИСТОРИИ И АДМИНКИ
+================================ */
+
 $("refreshHistory").addEventListener("click", async () => {
   try {
     await refreshHistory();
@@ -1423,6 +1932,7 @@ $("refreshHistory").addEventListener("click", async () => {
 $("refreshAdmin").addEventListener("click", refreshAdmin);
 
 /* Настройка ставок и восстановление сессии */
+
 setupBetControls();
 
 (async function init() {
