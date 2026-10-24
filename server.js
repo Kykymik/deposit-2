@@ -1266,55 +1266,6 @@ async function handleRequest(req, res) {
     return blackjackStand(user, res);
   }
 
-  // CRYSTAL — серверный генератор поля и расчёт выигрыша.
-  if (method === 'POST' && pathname === '/api/games/crystal/play') {
-    const user = requireUser(req, res);
-    if (!user) return;
-    const bet = safeAmount(body.bet, 1000, 1000000);
-    if (!bet || user.balance < bet) {
-      return sendJson(res, 400, { ok: false, error: 'Некорректная ставка или недостаточно средств.' });
-    }
-
-    const symbols = ['emerald', 'ice', 'sapphire', 'ruby', 'amber', 'amethyst'];
-    const board = Array.from({ length: 7 }, () => Array.from({ length: 7 }, () =>
-      secureRandomInt(0, 11) === 0 ? 'W' : symbols[secureRandomInt(0, symbols.length - 1)]
-    ));
-    const winning = new Set();
-    let lineCount = 0;
-    const inspect = cells => {
-      let start = 0;
-      while (start < cells.length) {
-        const symbol = board[cells[start][0]][cells[start][1]];
-        let end = start + 1;
-        while (end < cells.length) {
-          const next = board[cells[end][0]][cells[end][1]];
-          if (next !== symbol && next !== 'W' && symbol !== 'W') break;
-          end++;
-        }
-        if (end - start >= 3) {
-          lineCount++;
-          for (let i = start; i < end; i++) winning.add(cells[i][0] * 7 + cells[i][1]);
-        }
-        start = end;
-      }
-    };
-    for (let r = 0; r < 7; r++) inspect(Array.from({ length: 7 }, (_, c) => [r, c]));
-    for (let c = 0; c < 7; c++) inspect(Array.from({ length: 7 }, (_, r) => [r, c]));
-
-    // Демонстрационная игровая математика: выплата зависит от количества уникальных ячеек в линиях.
-    const multiplier = winning.size >= 12 ? 8 : winning.size >= 9 ? 4 : winning.size >= 6 ? 2 : winning.size >= 3 ? 1.2 : 0;
-    const payout = Math.floor(bet * multiplier);
-    user.balance = user.balance - bet + payout;
-    addHistory(user.id, 'game_bet', -bet, 'CRYSTAL: ставка');
-    if (payout > 0) addHistory(user.id, 'game_win', payout, `CRYSTAL: выплата x${multiplier.toFixed(2)}`);
-    else addHistory(user.id, 'game_loss', 0, 'CRYSTAL: выигрышных комбинаций нет');
-
-    return sendJson(res, 200, {
-      ok: true, board, winningCells: Array.from(winning), bet, payout, multiplier,
-      balance: user.balance, lines: lineCount
-    });
-  }
-
   // Авторизация администратора
   if (method === 'POST' && pathname === '/api/admin/login') {
     const username = String(body.username || '').trim();
